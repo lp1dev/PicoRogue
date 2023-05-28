@@ -5,6 +5,8 @@ from engine.bullet import Bullet
 from engine.tiles.tile import Tile
 from engine.tiles.flame import Flame
 from engine.tiles.door import Door
+from engine.tiles.monsters.eye import Eye
+from engine.tiles.monsters.monster import Monster
 from time import sleep
 
 class PygameHandler:
@@ -18,8 +20,8 @@ class PygameHandler:
         self.resources = {}
         self.load_resources()
         self.player = player
+        self.hostile_bullets = []
         self.time_since_last_bullet = 100
-        self.time_since_last_damage = 100
         self.tiles = []
         return
 
@@ -63,14 +65,16 @@ class PygameHandler:
         print(self.resources)
 
     def draw_bullets(self):
-        res = self.resources["bullet.png"]
-        for bullet in self.player.bullets:
+        for bullet in self.player.bullets + self.hostile_bullets:
             bullet.age += 1
             if bullet.age > bullet.lifespan:
-                self.player.bullets.remove(bullet)
+                if bullet in self.player.bullets:
+                    self.player.bullets.remove(bullet)
+                elif bullet in self.hostile_bullets:
+                    self.hostile_bullets.remove(bullet)
             next_x = bullet.x + bullet.vec_x
             next_y = bullet.y + bullet.vec_y
-            bullet.rect = self.display.blit(res, (next_x, next_y))
+            bullet.rect = self.display.blit(bullet.res, (next_x, next_y))
             bullet.x = next_x
             bullet.y = next_y
 
@@ -121,7 +125,9 @@ class PygameHandler:
                         res.blit(self.resources['fire.png'], (0, 0))
                         tile = Flame((tile_width * j) + step_x, (tile_width * i) + step_y, 1, self.resources['fire.png'], collide=True)
                         self.tiles.append(tile)
-
+                    elif tile == "E":
+                        tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y)
+                        self.tiles.append(tile)
 
                     if room.door_up:
                         tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", 0, self.resources['door.png'], collide=True)
@@ -170,16 +176,14 @@ class PygameHandler:
         return
 
     def handle_player_collisions(self, map):
-
         for tile in self.tiles:
             if not self.player.collide:
                 return
             tile_rect = pygame.Rect((tile.x, tile.y), (tile.width, tile.width))
             if tile.collide and tile_rect.colliderect(self.player.rect):
-                if tile.damage and self.time_since_last_damage > self.player.invulnerability_frames:
-                    self.player.lives -= tile.damage
-                    self.time_since_last_damage = 0
-                    return
+                if tile.damage:
+                    self.player.hit(tile.damage)
+
                 if isinstance(tile, Door):
                     print(map.cursor)
                     if tile.door_up:
@@ -205,7 +209,7 @@ class PygameHandler:
                     sleep(0.2) # TODO replace w/ an animation
                     return
 
-        self.time_since_last_damage += 1
+        self.player.time_since_last_damage += 1
         return
 
     def handle_bullets_collision(self):
@@ -216,5 +220,13 @@ class PygameHandler:
                     if bullet in self.player.bullets:
                         self.player.bullets.remove(bullet)
                     tile.hit()
+        for bullet in self.hostile_bullets:
+            if bullet.rect.colliderect(self.player.rect):
+                self.player.hit(bullet.damage)
 
 
+    def handle_ennemies(self):
+        for tile in self.tiles:
+            if isinstance(tile, Monster):
+                tile.play(self)
+        return

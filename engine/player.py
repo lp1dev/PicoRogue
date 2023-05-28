@@ -11,4 +11,10 @@ class Player:
         self.bullets = []
         self.rect = None
         self.collide = False
+        self.time_since_last_damage = 100
         return
+
+    def hit(self, damage):
+        if self.time_since_last_damage > self.invulnerability_frames:
+            self.lives -= damage
+            self.time_since_last_damage = 0

@@ -3,7 +3,7 @@ from engine.tiles.tile import Tile
 from os.path import join
 
 class Flame(Tile):
-    def __init__(self, x, y, damage=0, res=None, collide=True):
+    def __init__(self, x, y, damage=1, res=None, collide=True):
         self.lives = 3
         Tile.__init__(self, x, y, damage, res, collide)
 

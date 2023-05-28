@@ -19,6 +19,7 @@ class GameLoop:
 
             self.output.clock.tick(60)
             self.output.handle_collisions(self.map)
+            self.output.handle_ennemies()
             self.output.handle_event(self.map)
             self.output.draw(self.map)
         return
