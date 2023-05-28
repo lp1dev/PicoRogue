@@ -14,12 +14,22 @@ class Room:
         self.door_down = False
         self.door_left = False
         self.door_right = False
+        self.id = randrange(10000, 99999)
 
         if start:
             self.tiles = loader.load(self.floor, 'start')
-        else:
+        elif not special:
             chosen_room = randrange(1, 6)
             self.tiles = loader.load(self.floor, '%s' %chosen_room)
+        elif special == "⭐":
+            self.tiles = loader.load(self.floor, 'item')
+        elif special == "💀":
+            self.tiles = loader.load(self.floor, 'boss')
+        elif special == "💰":
+            self.tiles = loader.load(self.floor, 'shop')
+        else:
+            raise Exception("Unknown room type", special)
+            
         self.height = len(self.tiles)
         self.width = len(self.tiles[0]) - 1
         return

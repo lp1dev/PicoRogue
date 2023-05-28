@@ -12,6 +12,7 @@ class Player:
         self.rect = None
         self.collide = False
         self.time_since_last_damage = 100
+        self.inventory = []
         return
 
     def hit(self, damage):

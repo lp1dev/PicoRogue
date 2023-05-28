@@ -9,6 +9,7 @@ from engine.tiles.monsters.eye import Eye
 from engine.tiles.monsters.monster import Monster
 from engine.player import Player
 from engine.map import Map
+from engine.tiles.items import *
 from time import sleep
 
 class PygameHandler:
@@ -25,23 +26,34 @@ class PygameHandler:
         self.hostile_bullets = []
         self.time_since_last_bullet = 100
         self._map = _map
+        self.known_rooms = {}
         self.tiles = []
         return
 
     def handle_event(self):
+        keys = pygame.key.get_pressed()
+
         for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit(0)
-         
-        keys = pygame.key.get_pressed()
-        self.move_player(keys)
+
+        if keys[pygame.K_ESCAPE]:
+            pygame.quit()
+            exit(0)
+
         if keys[pygame.K_r]:
             self.reset()
             sleep(0.3)
             return
 
+        self.move_player(keys)
+        
+
+
     def move_player(self, keys):
+        if self.player.lives < 1:
+            return
         # Movement
         tile_width = self.resources['room_wall_top_right.png'].get_width()
 
@@ -89,14 +101,15 @@ class PygameHandler:
     def draw_map(self):
         gray = self.resources['gray_square_map.png']
         white = self.resources['white_square_map.png']
+        white_x = self.resources['white_square_map_x.png']
 
         for y in range(0, self._map.height):
             for x in range(0, self._map.width):
                 room = self._map.get_room(y, x)
                 if room:
-                    res = gray
+                    res = gray if room.id not in self.known_rooms.keys() else white
                     if y == self._map.cursor[0] and x == self._map.cursor[1]:
-                        res = white
+                        res = white_x
                     if room.special:
                         if room.special == "💀":
                             res = res.copy()
@@ -110,6 +123,12 @@ class PygameHandler:
             step_x = tile_width
             step_y = tile_width
             room = self._map.get_current_room()
+
+            if room.id in self.known_rooms.keys():
+                self.tiles = self.known_rooms[room.id]
+            else:
+                self.known_rooms[room.id] = []
+                self.tiles = []
 
             if len(self.tiles) > 0:
                 for tile in self.tiles:
@@ -135,36 +154,39 @@ class PygameHandler:
                     elif tile == "E":
                         tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y)
                         self.tiles.append(tile)
-
+                    elif tile == "I":
+                        tile = Item1((tile_width * j) + step_x, (tile_width * i) + step_y)
+                        self.tiles.append(tile)
                     if room.door_up:
-                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", 0, self.resources['door.png'], collide=True)
+                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", is_open=room.start)
                         self.display.blit(res, (tile.x, tile.y))
                         self.tiles.append(tile)
                     
                     if room.door_down:
-                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width / 2)), "DOWN", 0, self.resources['door.png'], collide=True)
+                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width / 2)), "DOWN", is_open=room.start)
                         self.display.blit(res, (tile.x, tile.y))
                         self.tiles.append(tile)
 
                     if room.door_left:
-                        tile = Door(tile_width / 2, (self.height / 2 - (tile_width / 2)), "LEFT", 0, self.resources['door.png'], collide=True)
+                        tile = Door(tile_width / 2, (self.height / 2 - (tile_width / 2)), "LEFT", is_open=room.start)
                         self.display.blit(res, (tile.x, tile.y))
                         self.tiles.append(tile)
 
                     if room.door_right:
-                        tile = Door(self.width - tile_width - tile_width / 2, (self.height / 2 - (tile_width / 2)), "RIGHT", 0, self.resources['door.png'], collide=True)
+                        tile = Door(self.width - tile_width - tile_width / 2, (self.height / 2 - (tile_width / 2)), "RIGHT", is_open=room.start)
                         self.display.blit(res, (tile.x, tile.y))
                         self.tiles.append(tile)
 
+                    self.known_rooms[room.id] = self.tiles
                     self.display.blit(res, (((tile_width * j) + step_x, (tile_width * i) + step_y)))
     
     def draw_hud(self):
         tile_width = self.resources["life.png"].get_width()
         for i in range(0, self.player.max_lives):
             if i < self.player.lives:
-                self.display.blit(self.resources["life.png"], (tile_width * 1.1 * i, 0))
+                self.display.blit(self.resources["life.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
             else:
-                self.display.blit(self.resources["life_empty.png"], (tile_width * 1.1 * i, 0))
+                self.display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
 
     def draw_player(self):
         self.player.rect = self.display.blit(self.resources['player.png'], (self.player.x, self.player.y))
@@ -188,10 +210,11 @@ class PygameHandler:
                 return
             tile_rect = pygame.Rect((tile.x, tile.y), (tile.width, tile.width))
             if tile.collide and tile_rect.colliderect(self.player.rect):
+                tile.collide_player(self.player, self._map)
                 if tile.damage:
                     self.player.hit(tile.damage)
 
-                if isinstance(tile, Door):
+                if isinstance(tile, Door) and tile.is_open:
                     print(self._map.cursor)
                     if tile.door_up:
                         self._map.move(self._map.cursor[0] - 1, self._map.cursor[1])
@@ -225,6 +248,7 @@ class PygameHandler:
         self.hostile_bullets = []
         self.time_since_last_bullet = 100
         self.tiles = []
+        self.known_rooms = {}
         self._map = Map(self.player, 1)
         return
 
@@ -242,7 +266,13 @@ class PygameHandler:
 
 
     def handle_ennemies(self):
+        monsters = 0
         for tile in self.tiles:
             if isinstance(tile, Monster):
                 tile.play(self)
+                monsters += 1
+        if monsters == 0:
+            for tile in self.tiles:
+                if isinstance(tile, Door) and not tile.is_open:
+                    tile.open()
         return
