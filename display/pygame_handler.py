@@ -4,6 +4,8 @@ from os.path import join
 from engine.bullet import Bullet
 from engine.tiles.tile import Tile
 from engine.tiles.flame import Flame
+from engine.tiles.door import Door
+from time import sleep
 
 class PygameHandler:
     def __init__(self, width, height, player):
@@ -77,19 +79,18 @@ class PygameHandler:
         gray = self.resources['gray_square_map.png']
         white = self.resources['white_square_map.png']
 
-
-        for i in range(0, map.height):
-            for j in range(0, map.width):
-                room = map.get_room(j, i)
+        for y in range(0, map.height):
+            for x in range(0, map.width):
+                room = map.get_room(y, x)
                 if room:
                     res = gray
-                    if i == map.cursor[0] and j == map.cursor[1]:
+                    if y == map.cursor[0] and x == map.cursor[1]:
                         res = white
                     if room.special:
                         if room.special == "💀":
                             res = res.copy()
                             res.blit(self.resources['skull_map.png'], (0, 0))
-                    self.display.blit(res, ((self.width - 300) + ((res.get_width() - 2) * i), 30 + ((res.get_height() - 2) * j)))
+                    self.display.blit(res, ((self.width - 300) + ((res.get_width() - 2) * x), 30 + ((res.get_height() - 2) * y)))
         return
 
     def draw_tiles(self, map):
@@ -115,13 +116,33 @@ class PygameHandler:
                     if tile == "S" and self.player.x == 0 and self.player.y == 0:
                         self.player.x = (j * tile_width) + step_x
                         self.player.y = (i * tile_width) + step_y
+                        self.player.collide = True
                     elif tile == "F":
                         res.blit(self.resources['fire.png'], (0, 0))
                         tile = Flame((tile_width * j) + step_x, (tile_width * i) + step_y, 1, self.resources['fire.png'], collide=True)
                         self.tiles.append(tile)
-                    else:
-                        tile = Tile((tile_width * j) + step_x, (tile_width * i) + step_y, 0, self.resources['tile.png'])
+
+
+                    if room.door_up:
+                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", 0, self.resources['door.png'], collide=True)
+                        self.display.blit(res, (tile.x, tile.y))
                         self.tiles.append(tile)
+                    
+                    if room.door_down:
+                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width / 2)), "DOWN", 0, self.resources['door.png'], collide=True)
+                        self.display.blit(res, (tile.x, tile.y))
+                        self.tiles.append(tile)
+
+                    if room.door_left:
+                        tile = Door(tile_width / 2, (self.height / 2 - (tile_width / 2)), "LEFT", 0, self.resources['door.png'], collide=True)
+                        self.display.blit(res, (tile.x, tile.y))
+                        self.tiles.append(tile)
+
+                    if room.door_right:
+                        tile = Door(self.width - tile_width - tile_width / 2, (self.height / 2 - (tile_width / 2)), "RIGHT", 0, self.resources['door.png'], collide=True)
+                        self.display.blit(res, (tile.x, tile.y))
+                        self.tiles.append(tile)
+
                     self.display.blit(res, (((tile_width * j) + step_x, (tile_width * i) + step_y)))
     
     def draw_hud(self, map):
@@ -143,19 +164,47 @@ class PygameHandler:
         self.draw_map(map)
         pygame.display.flip()
 
-    def handle_collisions(self):
-        self.handle_player_collisions()
+    def handle_collisions(self, map):
+        self.handle_player_collisions(map)
         self.handle_bullets_collision()
         return
 
-    def handle_player_collisions(self):
+    def handle_player_collisions(self, map):
+
         for tile in self.tiles:
+            if not self.player.collide:
+                return
             tile_rect = pygame.Rect((tile.x, tile.y), (tile.width, tile.width))
-            if tile.collide and tile_rect.colliderect(self.player.rect) and tile.damage:
-                if self.time_since_last_damage > self.player.invulnerability_frames:
+            if tile.collide and tile_rect.colliderect(self.player.rect):
+                if tile.damage and self.time_since_last_damage > self.player.invulnerability_frames:
                     self.player.lives -= tile.damage
                     self.time_since_last_damage = 0
                     return
+                if isinstance(tile, Door):
+                    print(map.cursor)
+                    if tile.door_up:
+                        map.move(map.cursor[0] - 1, map.cursor[1])
+                        self.player.x = tile.x
+                        self.player.y = self.height - tile.y - (tile.res.get_width() * 2)
+                    if tile.door_down:
+                        map.move(map.cursor[0] + 1, map.cursor[1])
+                        self.player.x = tile.x
+                        self.player.y = self.height - tile.y
+                    if tile.door_left:
+                        map.move(map.cursor[0], map.cursor[1] - 1)
+                        self.player.x = self.width - tile.x - (tile.res.get_width() * 2)
+                        self.player.y = tile.y
+                    if tile.door_right:
+                        map.move(map.cursor[0], map.cursor[1] + 1)
+                        self.player.x = self.width - tile.x
+                        self.player.y = tile.y
+
+                    self.tiles = []
+                    self.player.bullets = []
+                    self.player.collide = True
+                    sleep(0.2) # TODO replace w/ an animation
+                    return
+
         self.time_since_last_damage += 1
         return
 
@@ -164,7 +213,8 @@ class PygameHandler:
             for tile in self.tiles:
                 tile_rect = pygame.Rect((tile.x, tile.y), (tile.width, tile.width))
                 if tile.collide and tile_rect.colliderect(bullet.rect):
-                    self.player.bullets.remove(bullet)
+                    if bullet in self.player.bullets:
+                        self.player.bullets.remove(bullet)
                     tile.hit()
 
 

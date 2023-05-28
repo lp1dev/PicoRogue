@@ -8,4 +8,6 @@ class Tile:
         self.collide = collide
         self.rect = None
         self.destroyed = False
+        
+    def hit(self):
         return

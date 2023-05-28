@@ -10,7 +10,7 @@ ROOM_CREATION_PROB = 2
 MIN_DEAD_ENDS = 4
 
 class Map:
-    def __init__(self, floor=1, seed=None):
+    def __init__(self, player, floor=1, seed=None):
         self.seed = seed
         self.floor = floor
         self._size = int(3.33 * floor + randrange(5, 7))
@@ -33,21 +33,21 @@ class Map:
 
     def clear(self):
         self._map = []
-        for i in range(0, MAX_HEIGHT):
+        for y in range(0, MAX_HEIGHT):
             self._map.append([])
-            for j in range(0, MAX_WIDTH):
-                self._map[i].append(None)
+            for x in range(0, MAX_WIDTH):
+                self._map[y].append(None)
 
     def __str__(self):
         output = ""
 
         # Printing the map
-        for i in range(0, MAX_HEIGHT):
-            for j in range(0, MAX_WIDTH):
-                room = self._map[i][j]
+        for y in range(0, MAX_HEIGHT):
+            for x in range(0, MAX_WIDTH):
+                room = self._map[y][x]
                 if isinstance(room, Room):
                     if not room.special:
-                        output += "[%s ]" %self.count_neighbours(i, j)
+                        output += "[%s ]" %self.count_neighbours(y, x)
                     else:
                         output += "[%s]" %room.special
                 else:
@@ -108,25 +108,44 @@ class Map:
 
         return output
 
+    def move(self, y, x):
+        self.cursor = (y, x)
+
     def get_current_room(self):
         return self.get_room(self.cursor[0], self.cursor[1])
 
-    def get_room(self, x, y):
+    def get_room(self, y, x):
         """ Return the room at a position or None if it does not exists """
         if x > 0 and y > 0:
-            if x < MAX_HEIGHT and y < MAX_WIDTH:
-                return self._map[x][y]
+            if x < MAX_WIDTH and y < MAX_HEIGHT:
+                return self._map[y][x]
 
     def count_dead_ends(self):
         dead_ends = 0
         self.dead_ends = []
-        for i in range(0, MAX_HEIGHT):
-            for j in range(0, MAX_WIDTH):
-                if self.count_neighbours(i, j) < 2 and isinstance(self._map[i][j], Room):
-                    self._map[i][j].dead_end = True
-                    self.dead_ends.append((i, j))
+        for y in range(0, MAX_HEIGHT):
+            for x in range(0, MAX_WIDTH):
+                if self.count_neighbours(y, x) < 2 and isinstance(self._map[y][x], Room):
+                    self._map[y][x].dead_end = True
+                    self.dead_ends.append((y, x))
                     dead_ends += 1
         return dead_ends
+
+    def set_doors(self):
+        """ Setting up rooms doors inside Room objects """
+        
+        for y in range(0, MAX_HEIGHT):
+            for x in range(0, MAX_WIDTH):
+                if isinstance(self._map[y][x], Room):
+                    if y > 0 and isinstance(self._map[y - 1][x], Room):
+                        self._map[y][x].door_up = True
+                    if y < MAX_HEIGHT - 1 and isinstance(self._map[y + 1][x], Room):
+                        self._map[y][x].door_down = True
+                    if x > 0 and isinstance(self._map[y][x - 1], Room):
+                        self._map[y][x].door_left = True
+                    if x < MAX_WIDTH - 1 and isinstance(self._map[y][x + 1], Room):
+                        self._map[y][x].door_right = True
+
 
     def generate(self):
         while len(self.dead_ends) < MIN_DEAD_ENDS:
@@ -138,6 +157,7 @@ class Map:
             print(self)
         if not self.assign_special_rooms():
             return self.generate()
+        self.set_doors()
 
     def assign_special_rooms(self):
         available_rooms = self.dead_ends
@@ -161,64 +181,64 @@ class Map:
         return sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-    def generate_next_room(self, cursor_x, cursor_y):
+    def generate_next_room(self, cursor_y, cursor_x):
         # If we generated enough rooms, we stop
         if self.set_rooms >= self._size:
             return
 
         # We handle the top tile
-        if cursor_x + 1 < MAX_HEIGHT:
-            x = cursor_x + 1
-            if randrange(0, ROOM_CREATION_PROB) > 0:
-                if not isinstance(self._map[x][cursor_y], Room):
-                    if not self.count_neighbours(x, cursor_y) > 1:
-                        self._map[x][cursor_y] = Room(LOADER, self.floor, start=False)
-                        self.set_rooms += 1
-                        self.generate_next_room(x, cursor_y)
-
-        # We handle the bottom tile
-        if cursor_x - 1 >= 0:
-            x = cursor_x - 1
-            if randrange(0, ROOM_CREATION_PROB) > 0:
-                if not isinstance(self._map[x][cursor_y], Room):
-                    if not self.count_neighbours(x, cursor_y) > 1:
-                        self._map[x][cursor_y] = Room(LOADER, self.floor, start=False)
-                        self.set_rooms += 1
-                        self.generate_next_room(x, cursor_y)
-
-        # We handle the right tile
-        if cursor_y + 1 < MAX_WIDTH:
-            y = cursor_y + 1
-            if randrange(0, ROOM_CREATION_PROB) > 0:
-                if not isinstance(self._map[cursor_x][y], Room):
-                    if not self.count_neighbours(cursor_x, y) > 1:
-                        self._map[cursor_x][y] = Room(LOADER, self.floor, start=False)
-                        self.set_rooms += 1
-                        self.generate_next_room(cursor_x, y)
-
-        # We handle the left tile
         if cursor_y - 1 > 0:
             y = cursor_y - 1
             if randrange(0, ROOM_CREATION_PROB) > 0:
-                if not isinstance(self._map[cursor_x][y], Room):
-                    if not self.count_neighbours(cursor_x, y) > 1:
-                        self._map[cursor_x][y] = Room(LOADER, self.floor, start=False)
+                if not isinstance(self._map[y][cursor_x], Room):
+                    if not self.count_neighbours(y, cursor_x) > 1:
+                        self._map[y][cursor_x] = Room(LOADER, self.floor, start=False)
                         self.set_rooms += 1
-                        self.generate_next_room(cursor_x, y)
+                        self.generate_next_room(y, cursor_x)
+
+        # We handle the bottom tile
+        if cursor_y + 1 < MAX_HEIGHT:
+            y = cursor_y + 1
+            if randrange(0, ROOM_CREATION_PROB) > 0:
+                if not isinstance(self._map[y][cursor_x], Room):
+                    if not self.count_neighbours(y, cursor_x) > 1:
+                        self._map[y][cursor_x] = Room(LOADER, self.floor, start=False)
+                        self.set_rooms += 1
+                        self.generate_next_room(y, cursor_x)
+
+        # We handle the right tile
+        if cursor_x + 1 < MAX_WIDTH:
+            x = cursor_x + 1
+            if randrange(0, ROOM_CREATION_PROB) > 0:
+                if not isinstance(self._map[cursor_y][x], Room):
+                    if not self.count_neighbours(cursor_y, x) > 1:
+                        self._map[cursor_y][x] = Room(LOADER, self.floor, start=False)
+                        self.set_rooms += 1
+                        self.generate_next_room(cursor_y, x)
+
+        # We handle the left tile
+        if cursor_x - 1 > 0:
+            x = cursor_x - 1
+            if randrange(0, ROOM_CREATION_PROB) > 0:
+                if not isinstance(self._map[cursor_y][x], Room):
+                    if not self.count_neighbours(cursor_y, x) > 1:
+                        self._map[cursor_y][x] = Room(LOADER, self.floor, start=False)
+                        self.set_rooms += 1
+                        self.generate_next_room(cursor_y, x)
         return
 
-    def count_neighbours(self, cursor_x, cursor_y):
+    def count_neighbours(self, cursor_y, cursor_x):
         neighbours = 0
-        if cursor_x > 0:
-            if isinstance(self._map[cursor_x - 1][cursor_y], Room):
-                neighbours += 1
-        if cursor_x < MAX_HEIGHT - 1:
-            if isinstance(self._map[cursor_x + 1][cursor_y], Room):
-                neighbours += 1
         if cursor_y > 0:
-            if isinstance(self._map[cursor_x][cursor_y - 1], Room):
+            if isinstance(self._map[cursor_y - 1][cursor_x], Room):
                 neighbours += 1
-        if cursor_y < MAX_WIDTH - 1:
-            if isinstance(self._map[cursor_x][cursor_y + 1], Room):
+        if cursor_y < MAX_HEIGHT - 1:
+            if isinstance(self._map[cursor_y + 1][cursor_x], Room):
+                neighbours += 1
+        if cursor_x > 0:
+            if isinstance(self._map[cursor_y][cursor_x - 1], Room):
+                neighbours += 1
+        if cursor_x < MAX_WIDTH - 1:
+            if isinstance(self._map[cursor_y][cursor_x + 1], Room):
                 neighbours += 1
         return neighbours

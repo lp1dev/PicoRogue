@@ -6,8 +6,9 @@ class Player:
         self.speed = 10
         self.x = 0
         self.y = 0
-        self.bullets_delay = 30
+        self.bullets_delay = 20
         self.invulnerability_frames = 120
         self.bullets = []
         self.rect = None
+        self.collide = False
         return

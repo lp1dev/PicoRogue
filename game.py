@@ -13,12 +13,12 @@ class GameLoop:
         return
 
     def loop(self):
-        self.map = Map(self.game_data['floor'])
+        self.map = Map(self.player, self.game_data['floor'])
 
         while self.go_on:
 
             self.output.clock.tick(60)
-            self.output.handle_collisions()
+            self.output.handle_collisions(self.map)
             self.output.handle_event(self.map)
             self.output.draw(self.map)
         return

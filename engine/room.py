@@ -9,6 +9,11 @@ class Room:
         self.width = 0
         self.height = 0
         self.special = special
+        self.door_up = False
+        self.door_down = False
+        self.door_left = False
+        self.door_right = False
+
         if start:
             self.tiles = loader.load(self.floor, 'start')
         else:
