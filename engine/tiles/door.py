@@ -22,3 +22,12 @@ class Door(Tile):
         self.is_open = True
         self.res = pygame.image.load(join("resources", "textures", "door.png")).convert_alpha()
 
+class TrapDoor(Tile):
+    def __init__(self, x, y):
+        self.res = pygame.image.load(join("resources", "textures", "trapdoor.png")).convert_alpha()
+
+        Tile.__init__(self, x, y, 0, self.res, True)
+
+    def collide_player(self, player, _map):
+        print('CHANGE LEVEL')
+        return

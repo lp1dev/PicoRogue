@@ -4,12 +4,12 @@ from os.path import join
 from engine.bullet import Bullet
 from engine.tiles.tile import Tile
 from engine.tiles.flame import Flame
-from engine.tiles.door import Door
+from engine.tiles.door import Door, TrapDoor
 from engine.tiles.monsters.eye import Eye
 from engine.tiles.monsters.monster import Monster
 from engine.player import Player
 from engine.map import Map
-from engine.tiles.items import *
+from engine.tiles.items import pick_item
 from time import sleep
 
 class PygameHandler:
@@ -28,6 +28,7 @@ class PygameHandler:
         self._map = _map
         self.known_rooms = {}
         self.tiles = []
+        self.room = None
         return
 
     def handle_event(self):
@@ -110,6 +111,7 @@ class PygameHandler:
                     res = gray if room.id not in self.known_rooms.keys() else white
                     if y == self._map.cursor[0] and x == self._map.cursor[1]:
                         res = white_x
+                        self.room = room
                     if room.special:
                         if room.special == "💀":
                             res = res.copy()
@@ -133,6 +135,7 @@ class PygameHandler:
             if len(self.tiles) > 0:
                 for tile in self.tiles:
                     if tile.destroyed:
+                        tile.after_destroyed(self)
                         self.tiles.remove(tile)
                     else:
                         res = self.resources['tile.png'].copy()
@@ -155,7 +158,8 @@ class PygameHandler:
                         tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y)
                         self.tiles.append(tile)
                     elif tile == "I":
-                        tile = Item1((tile_width * j) + step_x, (tile_width * i) + step_y)
+
+                        tile = pick_item((tile_width * j) + step_x, (tile_width * i) + step_y)
                         self.tiles.append(tile)
                     if room.door_up:
                         tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", is_open=room.start)
@@ -214,6 +218,11 @@ class PygameHandler:
                 if tile.damage:
                     self.player.hit(tile.damage)
 
+                if isinstance(tile, TrapDoor):
+                    self.reset(keep_player=True)
+                    sleep(0.3)
+                    return
+
                 if isinstance(tile, Door) and tile.is_open:
                     print(self._map.cursor)
                     if tile.door_up:
@@ -243,8 +252,9 @@ class PygameHandler:
         self.player.time_since_last_damage += 1
         return
 
-    def reset(self):
-        self.player = Player()
+    def reset(self, keep_player=False):
+        if not keep_player:
+            self.player = Player()
         self.hostile_bullets = []
         self.time_since_last_bullet = 100
         self.tiles = []
@@ -259,7 +269,7 @@ class PygameHandler:
                 if tile.collide and tile_rect.colliderect(bullet.rect):
                     if bullet in self.player.bullets:
                         self.player.bullets.remove(bullet)
-                        tile.hit()
+                        tile.hit(self.player.damage)
         for bullet in self.hostile_bullets:
             if bullet.rect.colliderect(self.player.rect):
                 self.player.hit(bullet.damage)
@@ -272,6 +282,14 @@ class PygameHandler:
                 tile.play(self)
                 monsters += 1
         if monsters == 0:
+            if self.room and self.room.special == "💀":
+                has_trapdoor = False
+                for tile in self.tiles:
+                    if isinstance(tile, TrapDoor):
+                        has_trapdoor = True
+                if not has_trapdoor:
+                    tile = TrapDoor(400, 400)
+                    self.tiles.append(tile)
             for tile in self.tiles:
                 if isinstance(tile, Door) and not tile.is_open:
                     tile.open()

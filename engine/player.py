@@ -10,6 +10,7 @@ class Player:
         self.invulnerability_frames = 120
         self.bullets = []
         self.rect = None
+        self.damage = 1
         self.collide = False
         self.time_since_last_damage = 100
         self.inventory = []

@@ -9,5 +9,11 @@ class Tile:
         self.rect = None
         self.destroyed = False
         
-    def hit(self):
+    def hit(self, damage=1):
+        return
+
+    def collide_player(self, player, map):
+        return
+
+    def after_destroyed(self, pygame_handler):
         return
