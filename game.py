@@ -1,32 +1,24 @@
 from display import pygame_handler
+from engine.player import Player
 from engine.map import Map
-from time import sleep
 
 class GameLoop:
 
     def __init__(self):
-        self.game_data = {"floor":1}
+        self.game_data = {"floor": 1}
         self.go_on = True
-        self.output = pygame_handler.PygameHandler(64 * 15, 64 * 13)
-
+        self.player = Player()
+        self.output = pygame_handler.PygameHandler(64 * 15, 64 * 13, self.player)
         self.loop()
         return
 
     def loop(self):
         self.map = Map(self.game_data['floor'])
 
-        self.output.display_tiles(self.map)
-        self.output.display_map(self.map)
-        self.output.display_player()
-        self.output.draw()
         while self.go_on:
-            self.output.clock.tick(60)
 
+            self.output.clock.tick(60)
+            self.output.handle_collisions()
             self.output.handle_event(self.map)
-            
-            self.output.display_tiles(self.map)
-            self.output.display_map(self.map)
-            self.output.display_player()
-            self.output.display_bullets()
-            self.output.draw()
+            self.output.draw(self.map)
         return

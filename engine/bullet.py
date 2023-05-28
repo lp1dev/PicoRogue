@@ -8,4 +8,5 @@ class Bullet:
         self.vec_y = vec_y
         self.age = 0
         self.lifespan = 60
+        self.rect = None
         return
