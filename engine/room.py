@@ -20,11 +20,6 @@ class Room:
     def get_tile(self, x, y):
         if x >= 0 and x < self.height:
             if y >= 0 and y < self.width:
-                print('GET_TILE')
-                print('width', self.width)
-                print('height', self.height)
-                print('x', x)
-                print('y', y)
                 return self.tiles[x][y]
 
     def __str__(self):

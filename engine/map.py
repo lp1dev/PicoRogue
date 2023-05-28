@@ -199,7 +199,6 @@ class Map:
         # We handle the left tile
         if cursor_y - 1 > 0:
             y = cursor_y - 1
-            print(self._map[cursor_x][y])
             if randrange(0, ROOM_CREATION_PROB) > 0:
                 if not isinstance(self._map[cursor_x][y], Room):
                     if not self.count_neighbours(cursor_x, y) > 1:

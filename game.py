@@ -20,10 +20,13 @@ class GameLoop:
         self.output.display_player()
         self.output.draw()
         while self.go_on:
+            self.output.clock.tick(60)
+
             self.output.handle_event(self.map)
             
             self.output.display_tiles(self.map)
             self.output.display_map(self.map)
             self.output.display_player()
+            self.output.display_bullets()
             self.output.draw()
         return
