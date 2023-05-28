@@ -22,6 +22,8 @@ class Map:
         self.item_room = None
         self.shop = None
         self.cursor = (4, 4)
+        self.width = MAX_WIDTH
+        self.height = MAX_HEIGHT
         print('Map size is',  self._size)
 
         self.clear()
@@ -39,6 +41,7 @@ class Map:
     def __str__(self):
         output = ""
 
+        # Printing the map
         for i in range(0, MAX_HEIGHT):
             for j in range(0, MAX_WIDTH):
                 room = self._map[i][j]
@@ -50,9 +53,69 @@ class Map:
                 else:
                     output += "    "
             output += "\n"
+
+        # Printing the room
+        output += '\n'
         room = self._map[self.cursor[0]][self.cursor[1]]
-        output += str(room)
+        height = len(room.tiles)
+        width = len(room.tiles[0])
+
+        # Printing the top section with the potential door
+        for i in range(0, width + 1):
+            output += "=="
+        output += "\n"
+
+        for i in range(0, width):
+            if i == int(width/2) and self.get_room(self.cursor[0] - 1, self.cursor[1]):
+                output += '[]' # If there is a room above, we print the door
+            else:
+                output += "__" if i != 0 else "\\_"
+        output += "_/\n"
+
+        # Printing the tiles
+
+        for i, line in enumerate(room.tiles):
+            if i == int(height/2) and self.get_room(self.cursor[0], self.cursor[1] - 1):
+                output += "[]"
+            else:
+                output += " |"
+
+            for tile in line:
+                if tile == "0":
+                    output += "  "
+                elif tile == "F":
+                    output += "🔥"
+                elif tile == "S":
+                    output += "😭"
+
+            if i == int(height/2) and self.get_room(self.cursor[0], self.cursor[1] + 1):
+                output += " []\n"
+            else:
+                output += " |\n"
+        
+        # Printing the bottom section with the potential door
+
+        for i in range(0, width):
+            if i == int(width/2) and self.get_room(self.cursor[0] + 1, self.cursor[1]):
+                output += '[]' # If there is a room under, we print the door
+            else:
+                output += "--" if i != 0 else "/-"
+        output += "-\\\n"
+
+        for i in range(0, width + 1):
+            output += "=="
+        output += "\n"
+
         return output
+
+    def get_current_room(self):
+        return self.get_room(self.cursor[0], self.cursor[1])
+
+    def get_room(self, x, y):
+        """ Return the room at a position or None if it does not exists """
+        if x > 0 and y > 0:
+            if x < MAX_HEIGHT and y < MAX_WIDTH:
+                return self._map[x][y]
 
     def count_dead_ends(self):
         dead_ends = 0
