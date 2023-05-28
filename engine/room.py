@@ -1,4 +1,5 @@
 from engine.room_loader import Loader
+from random import randrange
 
 class Room:
     def __init__(self, loader, floor, start=False, special=None):
@@ -17,7 +18,8 @@ class Room:
         if start:
             self.tiles = loader.load(self.floor, 'start')
         else:
-            self.tiles = loader.load(self.floor, 'placeholder')
+            chosen_room = randrange(1, 6)
+            self.tiles = loader.load(self.floor, '%s' %chosen_room)
         self.height = len(self.tiles)
         self.width = len(self.tiles[0]) - 1
         return
