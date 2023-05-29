@@ -205,13 +205,19 @@ class PygameHandler:
         self.draw_bullets()
         self.draw_hud()
         self.draw_map()
+
+        # Scaling
         scaled = pygame.transform.scale(self.display, (self.width, self.height))
         step = 0
         if self.display_height < self.height:
-            scaled = pygame.transform.scale(self.display, (self.width, self.display_height))
-            step = self.height - self.display_height
+            scale_ratio = self.height / self.display_height    
+            game_ratio = self.height / self.width
+            scaled = pygame.transform.scale(self.display, (self.display_width * game_ratio, self.display_height))
+
+        if self.display_width > self.display_width * game_ratio:
+            step = (self.display_width - (self.display_width * game_ratio)) / 2
         self.real_display.fill((255, 255, 255))
-        self.real_display.blit(scaled, (step/2, 0))
+        self.real_display.blit(scaled, (step, 0))
         pygame.display.update()
 
     def handle_collisions(self):
