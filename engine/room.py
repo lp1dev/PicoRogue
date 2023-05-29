@@ -20,7 +20,7 @@ class Room:
         if start:
             self.tiles = loader.load(self.floor, 'start')
         elif not special:
-            chosen_room = randrange(1, 6)
+            chosen_room = randrange(1, 10)
             self.tiles = loader.load(self.floor, '%s' %chosen_room)
         elif special == "⭐":
             self.tiles = loader.load(self.floor, 'item')

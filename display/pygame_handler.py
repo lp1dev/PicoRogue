@@ -5,7 +5,7 @@ from engine.bullet import Bullet
 from engine.tiles.tile import Tile
 from engine.tiles.flame import Flame
 from engine.tiles.door import Door, TrapDoor
-from engine.tiles.monsters.eye import Eye
+from engine.tiles.monsters.eye import Eye, Eye2
 from engine.tiles.monsters.monster import Monster
 from engine.player import Player
 from engine.map import Map
@@ -154,6 +154,9 @@ class PygameHandler:
                         self.tiles.append(tile)
                     elif tile == "E":
                         tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y, level=self.level)
+                        self.tiles.append(tile)
+                    elif tile == "2":
+                        tile = Eye2((tile_width * j) + step_x, (tile_width * i) + step_y, level=self.level)
                         self.tiles.append(tile)
                     elif tile == "I":
                         tile = pick_item((tile_width * j) + step_x, (tile_width * i) + step_y)
