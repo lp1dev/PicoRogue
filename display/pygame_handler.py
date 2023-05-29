@@ -28,6 +28,7 @@ class PygameHandler:
         self._map = _map
         self.known_rooms = {}
         self.tiles = []
+        self.level = 1
         self.room = None
         return
 
@@ -71,7 +72,7 @@ class PygameHandler:
                 and self.time_since_last_bullet > self.player.bullets_delay:
                     bullet_vec_x = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * 11 # DEBUG static speed
                     bullet_vec_y = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * 11 # DEBUG static speed
-                    bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y)
+                    bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
                     self.time_since_last_bullet = 0
         else:
@@ -120,7 +121,7 @@ class PygameHandler:
         return
 
     def draw_tiles(self):
-            self.display.fill([255, 255, 255])
+            self.display.blit(self.resources['bg1.png'], (0, 0))
             tile_width = self.resources['room_wall_top_right.png'].get_width()
             step_x = tile_width
             step_y = tile_width
@@ -138,51 +139,42 @@ class PygameHandler:
                         tile.after_destroyed(self)
                         self.tiles.remove(tile)
                     else:
-                        res = self.resources['tile.png'].copy()
                         self.display.blit(tile.res, (tile.x, tile.y))
                 return
             for i in range(0, room.height):
                 for j in range(0, room.width):
                     tile = room.get_tile(i, j)
                         
-                    res = self.resources['tile.png'].copy()
                     if tile == "S" and self.player.x == 0 and self.player.y == 0:
                         self.player.x = (j * tile_width) + step_x
                         self.player.y = (i * tile_width) + step_y
                         self.player.collide = True
                     elif tile == "F":
-                        res.blit(self.resources['fire.png'], (0, 0))
                         tile = Flame((tile_width * j) + step_x, (tile_width * i) + step_y, 1, self.resources['fire.png'], collide=True)
                         self.tiles.append(tile)
                     elif tile == "E":
-                        tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y)
+                        tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y, level=self.level)
                         self.tiles.append(tile)
                     elif tile == "I":
-
                         tile = pick_item((tile_width * j) + step_x, (tile_width * i) + step_y)
                         self.tiles.append(tile)
                     if room.door_up:
-                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width / 2), "UP", is_open=room.start)
-                        self.display.blit(res, (tile.x, tile.y))
+                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width * 0.2), "UP", is_open=room.start)
                         self.tiles.append(tile)
                     
                     if room.door_down:
-                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width / 2)), "DOWN", is_open=room.start)
-                        self.display.blit(res, (tile.x, tile.y))
+                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width * 0.2)), "DOWN", is_open=room.start)
                         self.tiles.append(tile)
 
                     if room.door_left:
-                        tile = Door(tile_width / 2, (self.height / 2 - (tile_width / 2)), "LEFT", is_open=room.start)
-                        self.display.blit(res, (tile.x, tile.y))
+                        tile = Door(tile_width * 0.2, (self.height / 2 - (tile_width / 2)), "LEFT", is_open=room.start)
                         self.tiles.append(tile)
 
                     if room.door_right:
-                        tile = Door(self.width - tile_width - tile_width / 2, (self.height / 2 - (tile_width / 2)), "RIGHT", is_open=room.start)
-                        self.display.blit(res, (tile.x, tile.y))
+                        tile = Door(self.width - tile_width - tile_width * 0.2, (self.height / 2 - (tile_width / 2)), "RIGHT", is_open=room.start)
                         self.tiles.append(tile)
 
                     self.known_rooms[room.id] = self.tiles
-                    self.display.blit(res, (((tile_width * j) + step_x, (tile_width * i) + step_y)))
     
     def draw_hud(self):
         tile_width = self.resources["life.png"].get_width()
@@ -193,7 +185,10 @@ class PygameHandler:
                 self.display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
 
     def draw_player(self):
-        self.player.rect = self.display.blit(self.resources['player.png'], (self.player.x, self.player.y))
+        if self.player.time_since_last_damage < self.player.invulnerability_frames:
+            self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
+        else:
+            self.player.rect = self.display.blit(self.resources['player.png'], (self.player.x, self.player.y))
 
     def draw(self):
         self.draw_tiles()
@@ -219,6 +214,7 @@ class PygameHandler:
                     self.player.hit(tile.damage)
 
                 if isinstance(tile, TrapDoor):
+                    self.level += 1
                     self.reset(keep_player=True)
                     sleep(0.3)
                     return
@@ -255,11 +251,12 @@ class PygameHandler:
     def reset(self, keep_player=False):
         if not keep_player:
             self.player = Player()
+            self.level = 1
         self.hostile_bullets = []
         self.time_since_last_bullet = 100
         self.tiles = []
         self.known_rooms = {}
-        self._map = Map(self.player, 1)
+        self._map = Map(self.player, self.level)
         return
 
     def handle_bullets_collision(self):
@@ -268,7 +265,8 @@ class PygameHandler:
                 tile_rect = pygame.Rect((tile.x, tile.y), (tile.width, tile.width))
                 if tile.collide and tile_rect.colliderect(bullet.rect):
                     if bullet in self.player.bullets:
-                        self.player.bullets.remove(bullet)
+                        if tile.block_bullets:
+                            self.player.bullets.remove(bullet)
                         tile.hit(self.player.damage)
         for bullet in self.hostile_bullets:
             if bullet.rect.colliderect(self.player.rect):

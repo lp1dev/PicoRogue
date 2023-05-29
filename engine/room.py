@@ -4,6 +4,7 @@ from random import randrange
 class Room:
     def __init__(self, loader, floor, start=False, special=None):
         self.floor = floor
+        self.floor = 1 # TODO change, since there is only one floor so far
         self.start = start
         self.finished = False
         self.dead_end = False

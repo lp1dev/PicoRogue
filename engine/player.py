@@ -3,11 +3,13 @@ class Player:
     def __init__(self):
         self.lives = 3
         self.max_lives = 3
-        self.speed = 10
+        self.speed = 5
         self.x = 0
         self.y = 0
         self.bullets_delay = 20
-        self.invulnerability_frames = 120
+        self.bullets_lifespan = 30
+        self.bullets_speed = 12
+        self.invulnerability_frames = 60
         self.bullets = []
         self.rect = None
         self.damage = 1

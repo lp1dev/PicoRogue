@@ -4,8 +4,8 @@ from engine.bullet import Bullet
 from engine.tiles.monsters.monster import Monster
 
 class Eye(Monster):
-    def __init__(self, x, y, damage=1, res=None, collide=True):
-        self.bullets_delay = 70
+    def __init__(self, x, y, damage=1, res=None, collide=True, level=1):
+        self.bullets_delay = 70 - (level * 2)
         self.last_bullet = 0
         self.bullet_speed = 5
         Monster.__init__(self, x, y, damage, None, collide)

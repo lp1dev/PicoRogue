@@ -27,7 +27,3 @@ class TrapDoor(Tile):
         self.res = pygame.image.load(join("resources", "textures", "trapdoor.png")).convert_alpha()
 
         Tile.__init__(self, x, y, 0, self.res, True)
-
-    def collide_player(self, player, _map):
-        print('CHANGE LEVEL')
-        return

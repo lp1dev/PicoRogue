@@ -3,6 +3,7 @@ from engine.tiles.tile import Tile
 from random import randrange
 from os.path import join
 from engine.tiles.items import pick_item
+from engine.tiles.consumables import pick_consumable
 
 class Monster(Tile):
     def __init__(self, x, y, damage=1, res=None, collide=True):
@@ -19,6 +20,8 @@ class Monster(Tile):
         return
 
     def after_destroyed(self, pygame_handler):
-        if randrange(0, 10) == 1:
+        if randrange(0, 11) == 1:
             pygame_handler.tiles.append(pick_item(self.x, self.y))
+        elif randrange(0, 5) == 1:
+            pygame_handler.tiles.append(pick_consumable(self.x, self.y))
         return
