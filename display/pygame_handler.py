@@ -13,11 +13,17 @@ from engine.tiles.items import pick_item
 from time import sleep
 
 class PygameHandler:
-    def __init__(self, width, height, player, _map):
+    def __init__(self, display_width, display_height, player, _map):
         pygame.init()
-        self.width = width
-        self.height = height
-        self.display = pygame.display.set_mode((width, height))
+        self.width = 960
+        self.height = 832
+#        self.display = pygame.display.set_mode((width, height))
+        self.display_width = display_width
+        self.display_height = display_height
+        ### Resolution change test
+        self.real_display = pygame.display.set_mode((display_width, display_height))
+        self.display = pygame.Surface((self.width, self.height))
+
         pygame.display.set_caption('PycoRogue')
         self.clock = pygame.time.Clock()
         self.resources = {}
@@ -199,7 +205,14 @@ class PygameHandler:
         self.draw_bullets()
         self.draw_hud()
         self.draw_map()
-        pygame.display.flip()
+        scaled = pygame.transform.scale(self.display, (self.width, self.height))
+        step = 0
+        if self.display_height < self.height:
+            scaled = pygame.transform.scale(self.display, (self.width, self.display_height))
+            step = self.height - self.display_height
+        self.real_display.fill((255, 255, 255))
+        self.real_display.blit(scaled, (step/2, 0))
+        pygame.display.update()
 
     def handle_collisions(self):
         self.handle_player_collisions()
