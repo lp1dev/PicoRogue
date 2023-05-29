@@ -81,6 +81,14 @@ class PygameHandler:
                     bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
                     self.time_since_last_bullet = 0
+        elif (keys[pygame.K_o] or keys[pygame.K_k] \
+            or keys[pygame.K_l] or keys[pygame.K_SEMICOLON]) \
+                and self.time_since_last_bullet > self.player.bullets_delay:
+                    bullet_vec_x = (keys[pygame.K_SEMICOLON] - keys[pygame.K_k]) * 11 # DEBUG static speed
+                    bullet_vec_y = (keys[pygame.K_l] - keys[pygame.K_o]) * 11 # DEBUG static speed
+                    bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
+                    self.player.bullets.append(bullet)
+                    self.time_since_last_bullet = 0
         else:
             self.time_since_last_bullet += 1
 
@@ -216,8 +224,7 @@ class PygameHandler:
 
         if self.display_width > self.width:
             step = (self.display_width - self.width) / 2
-        # else:
-            # step = (self.width - self.display_width) * 2
+
         self.real_display.fill((255, 255, 255))
         self.real_display.blit(scaled, (step, 0))
         pygame.display.update()
