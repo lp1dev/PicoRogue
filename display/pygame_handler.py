@@ -38,6 +38,7 @@ class PygameHandler:
         self.room = None
         self.mouse = False
         self.mouse_pressed = False
+        self.font = None
         return
 
     def handle_event(self):
@@ -229,12 +230,18 @@ class PygameHandler:
                     self.known_rooms[room.id] = self.tiles
     
     def draw_hud(self):
+        # Draw lives
         tile_width = self.resources["life.png"].get_width()
         for i in range(0, self.player.max_lives):
             if i < self.player.lives:
-                self.display.blit(self.resources["life.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
+                self.real_display.blit(self.resources["life.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
             else:
-                self.display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
+                self.real_display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
+        # Draw coins
+        # if not self.font:
+        #     self.font = pygame.font.Font("Nemoy.otf", 32)
+        #     text = self.font.render("99", True, (0,0,0), (0,0,0))
+        #     self.real_display.blit(text)
 
     def draw_player(self):
         if self.player.time_since_last_damage < self.player.invulnerability_frames:
@@ -246,7 +253,6 @@ class PygameHandler:
         self.draw_tiles()
         self.draw_player()
         self.draw_bullets()
-        self.draw_hud()
         self.draw_map()
 
         # Scaling
@@ -264,6 +270,7 @@ class PygameHandler:
 
         self.real_display.fill((255, 255, 255))
         self.real_display.blit(scaled, (step, 0))
+        self.draw_hud()
         pygame.display.update()
 
     def handle_collisions(self):

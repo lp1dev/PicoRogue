@@ -26,3 +26,19 @@ def pick_consumable(x, y):
     Chosen = choice(consumables)
     return Chosen(x, y)
 
+class Coin(Consumable):
+    def __init__(self, x, y):
+        self.name = "Coin"
+        self.res = pygame.image.load(join("resources", "textures", "coin.png")).convert_alpha()
+        Consumable.__init__(self, x, y, self.res)
+
+    def collide_player(self, player, map):
+        if player.coins < player.max_coins:
+            player.coins += 1
+            self.destroyed = True
+
+def pick_consumable(x, y):
+    consumables = [ Battery, Coin ]
+    Chosen = choice(consumables)
+    return Chosen(x, y)
+

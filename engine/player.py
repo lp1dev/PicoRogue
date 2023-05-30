@@ -3,6 +3,8 @@ class Player:
     def __init__(self):
         self.lives = 3
         self.max_lives = 3
+        self.coins = 0
+        self.max_coins = 99
         self.speed = 5
         self.x = 0
         self.y = 0
