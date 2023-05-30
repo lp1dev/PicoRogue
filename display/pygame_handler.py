@@ -10,13 +10,15 @@ from engine.tiles.monsters.eye import Eye, Eye2
 from engine.tiles.monsters.monster import Monster
 from engine.player import Player
 from engine.map import Map
-from engine.tiles.items import pick_item
+from engine.tiles.items import pick_item, Pedestal
 from engine.tools import move_towards, convert_pos_screen_game, distance
+from engine.tiles.loader import load_tiles
 from time import sleep
 
 class PygameHandler:
     def __init__(self, display_width, display_height, player, _map):
         pygame.init()
+
         self.width = 960
         self.height = 832
         self.display_width = display_width
@@ -24,6 +26,7 @@ class PygameHandler:
         self.real_display = pygame.display.set_mode((display_width, display_height))
         self.display = pygame.Surface((self.width, self.height))
 
+        #
         pygame.display.set_caption('PycoRogue')
         self.clock = pygame.time.Clock()
         self.resources = {}
@@ -50,6 +53,7 @@ class PygameHandler:
                 self.mouse_pressed = True
             if event.type == pygame.MOUSEBUTTONUP:
                 self.mouse_pressed = False
+
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit(0)
@@ -65,7 +69,6 @@ class PygameHandler:
 
         self.move_player(keys)
         
-
 
     def move_player(self, keys):
         if self.player.lives < 1:
@@ -172,9 +175,7 @@ class PygameHandler:
 
     def draw_tiles(self):
             self.display.blit(self.resources['bg1.png'], (0, 0))
-            tile_width = self.resources['room_wall_top_right.png'].get_width()
-            step_x = tile_width
-            step_y = tile_width
+
             room = self._map.get_current_room()
 
             if room.id in self.known_rooms.keys():
@@ -191,43 +192,10 @@ class PygameHandler:
                     else:
                         self.display.blit(tile.res, (tile.x, tile.y))
                 return
-            for i in range(0, room.height):
-                for j in range(0, room.width):
-                    tile = room.get_tile(i, j)
-                        
-                    if tile == "S" and self.player.x == 0 and self.player.y == 0:
-                        self.player.x = (j * tile_width) + step_x
-                        self.player.y = (i * tile_width) + step_y
-                        self.player.collide = True
-                    elif tile == "F":
-                        tile = Flame((tile_width * j) + step_x, (tile_width * i) + step_y, 1, self.resources['fire.png'], collide=True)
-                        self.tiles.append(tile)
-                    elif tile == "E":
-                        tile = Eye((tile_width * j) + step_x, (tile_width * i) + step_y, level=self.level)
-                        self.tiles.append(tile)
-                    elif tile == "2":
-                        tile = Eye2((tile_width * j) + step_x, (tile_width * i) + step_y, level=self.level)
-                        self.tiles.append(tile)
-                    elif tile == "I":
-                        tile = pick_item((tile_width * j) + step_x, (tile_width * i) + step_y)
-                        self.tiles.append(tile)
-                    if room.door_up:
-                        tile = Door((self.width / 2) - (tile_width / 2), (tile_width * 0.2), "UP", is_open=room.start)
-                        self.tiles.append(tile)
-                    
-                    if room.door_down:
-                        tile = Door((self.width / 2) - (tile_width / 2), (self.height - tile_width - (tile_width * 0.2)), "DOWN", is_open=room.start)
-                        self.tiles.append(tile)
+            else:
+                load_tiles(self)
 
-                    if room.door_left:
-                        tile = Door(tile_width * 0.2, (self.height / 2 - (tile_width / 2)), "LEFT", is_open=room.start)
-                        self.tiles.append(tile)
-
-                    if room.door_right:
-                        tile = Door(self.width - tile_width - tile_width * 0.2, (self.height / 2 - (tile_width / 2)), "RIGHT", is_open=room.start)
-                        self.tiles.append(tile)
-
-                    self.known_rooms[room.id] = self.tiles
+            self.known_rooms[room.id] = self.tiles
     
     def draw_hud(self):
         # Draw lives
@@ -238,10 +206,11 @@ class PygameHandler:
             else:
                 self.real_display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
         # Draw coins
-        # if not self.font:
-        #     self.font = pygame.font.Font("Nemoy.otf", 32)
-        #     text = self.font.render("99", True, (0,0,0), (0,0,0))
-        #     self.real_display.blit(text)
+        if not self.font:
+             self.font = pygame.font.Font("resources/fonts/NemoyMedium.otf", 32)
+        text = self.font.render("{:02d}".format(self.player.coins), True, (0,0,0))
+        self.real_display.blit(self.resources['coin.png'], (32, 100))
+        self.real_display.blit(text, (32 + 64, 108))
 
     def draw_player(self):
         if self.player.time_since_last_damage < self.player.invulnerability_frames:

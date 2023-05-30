@@ -5,9 +5,11 @@ from random import randrange
 from os.path import join
 
 class Flame(Tile):
-    def __init__(self, x, y, damage=1, res=None, collide=True):
+    def __init__(self, x, y, damage=1):
         self.lives = 3
-        Tile.__init__(self, x, y, damage, res, collide)
+        self.res = pygame.image.load(join("resources", "textures", "fire.png")).convert_alpha()
+
+        Tile.__init__(self, x, y, damage, self.res, True)
 
     def hit(self, damage=1):
         if self.lives > 1:

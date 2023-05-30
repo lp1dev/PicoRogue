@@ -1,3 +1,4 @@
+
 class Tile:
     def __init__(self, x, y, damage=0, res=None, collide=False, block_bullets=True):
         self.x = x
