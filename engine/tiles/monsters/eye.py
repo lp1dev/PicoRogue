@@ -1,6 +1,7 @@
 import pygame
 from os.path import join
 from math import sqrt, hypot
+from engine.tools import move_towards
 from engine.bullet import Bullet
 from engine.tiles.monsters.monster import Monster
 
@@ -42,13 +43,7 @@ class Eye2(Monster):
             self.shoot(pygame_handler)
             self.last_bullet = 0
 
-        # self.rect = pygame.Rect(self.x, self.y, self.res.get_width(), self.res.get_height())
-        dx, dy = pygame_handler.player.x - self.x, pygame_handler.player.y - self.y
-        dist = hypot(dx, dy)
-        dx, dy = dx / dist, dy / dist  # Normalize.
-        # Move along this normalized vector towards the player at current speed.
-        self.x += dx * self.speed
-        self.y += dy * self.speed
+        move_towards(self, pygame_handler.player.x, pygame_handler.player.y)
 
     def shoot(self, pygame_handler):
         vector_x, vector_y = pygame_handler.player.x - self.x, pygame_handler.player.y - self.y

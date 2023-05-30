@@ -1,6 +1,7 @@
 import pygame
 from os import walk
 from os.path import join
+from math import hypot
 from engine.bullet import Bullet
 from engine.tiles.tile import Tile
 from engine.tiles.flame import Flame
@@ -10,6 +11,7 @@ from engine.tiles.monsters.monster import Monster
 from engine.player import Player
 from engine.map import Map
 from engine.tiles.items import pick_item
+from engine.tools import move_towards, convert_pos_screen_game, distance
 from time import sleep
 
 class PygameHandler:
@@ -17,10 +19,8 @@ class PygameHandler:
         pygame.init()
         self.width = 960
         self.height = 832
-#        self.display = pygame.display.set_mode((width, height))
         self.display_width = display_width
         self.display_height = display_height
-        ### Resolution change test
         self.real_display = pygame.display.set_mode((display_width, display_height))
         self.display = pygame.Surface((self.width, self.height))
 
@@ -36,15 +36,22 @@ class PygameHandler:
         self.tiles = []
         self.level = 1
         self.room = None
+        self.mouse = False
+        self.mouse_pressed = False
         return
 
     def handle_event(self):
         keys = pygame.key.get_pressed()
 
         for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit(0)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.mouse = True
+                self.mouse_pressed = True
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.mouse_pressed = False
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit(0)
 
         if keys[pygame.K_ESCAPE]:
             pygame.quit()
@@ -64,6 +71,7 @@ class PygameHandler:
             return
         # Movement
         tile_width = self.resources['room_wall_top_right.png'].get_width()
+        shot = False
 
         new_x = self.player.x + (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
         new_y = self.player.y + (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
@@ -80,7 +88,7 @@ class PygameHandler:
                     bullet_vec_y = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * 11 # DEBUG static speed
                     bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
-                    self.time_since_last_bullet = 0
+                    shot = True
         elif (keys[pygame.K_o] or keys[pygame.K_k] \
             or keys[pygame.K_l] or keys[pygame.K_SEMICOLON]) \
                 and self.time_since_last_bullet > self.player.bullets_delay:
@@ -88,9 +96,36 @@ class PygameHandler:
                     bullet_vec_y = (keys[pygame.K_l] - keys[pygame.K_o]) * 11 # DEBUG static speed
                     bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
-                    self.time_since_last_bullet = 0
-        else:
+                    shot = True
+
+        # Autoshoot with mouse click
+
+        if self.mouse_pressed:
+            pos = pygame.mouse.get_pos()
+            pos = convert_pos_screen_game(self, pos)
+            move_towards(self.player, pos[0], pos[1])
+            print(self.time_since_last_bullet, self.player.bullets_delay)
+            if self.time_since_last_bullet > self.player.bullets_delay:
+                closest = None
+                lowest_distance = 1000
+                for tile in self.tiles:
+                    if isinstance(tile, Monster):
+                        monster_dist = distance(self.player, tile)
+                        if monster_dist < lowest_distance:
+                            lowest_distance = monster_dist
+                            closest = tile
+                if closest: # If there is a monster close to us
+                    dx, dy = closest.x - self.player.x, closest.y - self.player.y
+                    dist = hypot(dx, dy)
+                    dx, dy = dx / dist, dy / dist
+                    bullet = Bullet(self.player.x, self.player.y, dx * 11, dy * 11, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
+                    self.player.bullets.append(bullet)
+                    shot = True
+
+        if not shot:
             self.time_since_last_bullet += 1
+        else:
+            self.time_since_last_bullet = 0
 
     def load_resources(self):
         for root, dirs, files in walk(join("resources", "textures")):
@@ -224,6 +259,8 @@ class PygameHandler:
 
         if self.display_width > self.width:
             step = (self.display_width - self.width) / 2
+        else:
+            step = (self.display_width - (self.display_height / game_ratio)) / 2
 
         self.real_display.fill((255, 255, 255))
         self.real_display.blit(scaled, (step, 0))
