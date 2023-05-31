@@ -79,7 +79,7 @@ def pick_item(x, y, pool="all"):
     ItemClass = getattr(importlib.import_module("engine.tiles.items"), "Item%s" %chosen)
     return ItemClass(x, y)
 
-class Pedestal(Item):
+class ItemPedestal(Item):
     def __init__(self, x, y):
         self.price = randrange(7, 15)
         self.item = pick_item(x, y)
@@ -92,7 +92,7 @@ class Pedestal(Item):
         Item.__init__(self, x, y, self.res)
 
     def collide_player(self, player, _map):
-        if player.coins > self.price:
+        if player.coins >= self.price:
             player.coins -= self.price
             self.item.collide_player(player, _map)
             self.destroyed = True

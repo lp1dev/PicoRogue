@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 
 class Tile:
     def __init__(self, x, y, damage=0, res=None, collide=False, block_bullets=True):
@@ -11,11 +12,20 @@ class Tile:
         self.rect = None
         self.destroyed = False
         
+    @abstractmethod
     def hit(self, damage=1):
-        return
+        pass
 
+    @abstractmethod
     def collide_player(self, player, map):
-        return
+        pass
 
+    @abstractmethod
     def after_destroyed(self, pygame_handler):
-        return
+        pass
+
+    def get_center_x(self):
+        return self.x + self.res.get_width() / 2
+    
+    def get_center_y(self):
+        return self.y + self.res.get_height() / 2

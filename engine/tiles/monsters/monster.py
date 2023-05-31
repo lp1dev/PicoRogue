@@ -6,8 +6,8 @@ from engine.tiles.items import pick_item
 from engine.tiles.consumables import pick_consumable
 
 class Monster(Tile):
-    def __init__(self, x, y, damage=1, res=None, collide=True):
-        self.lives = 4
+    def __init__(self, x, y, damage=1, res=None, collide=True, lives=4):
+        self.lives = lives
         self.res = pygame.image.load(join("resources", "textures", "eye.png")).convert_alpha() if res is None else res
         Tile.__init__(self, x, y, damage, self.res, collide)
 
@@ -16,7 +16,7 @@ class Monster(Tile):
         if self.lives < 1:
             self.destroyed = True
 
-    def play(self):
+    def play(self, pygame_handler):
         return
 
     def after_destroyed(self, pygame_handler):

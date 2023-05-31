@@ -15,7 +15,7 @@ class Room:
         self.door_down = False
         self.door_left = False
         self.door_right = False
-        self.id = randrange(10000, 99999)
+        self.id = randrange(100000, 999999)
 
         if start:
             self.tiles = loader.load(self.floor, 'start')

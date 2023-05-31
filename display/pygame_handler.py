@@ -3,14 +3,11 @@ from os import walk
 from os.path import join
 from math import hypot
 from engine.bullet import Bullet
-from engine.tiles.tile import Tile
-from engine.tiles.flame import Flame
 from engine.tiles.door import Door, TrapDoor
-from engine.tiles.monsters.eye import Eye, Eye2
 from engine.tiles.monsters.monster import Monster
+from resources.loader import load_resources
 from engine.player import Player
 from engine.map import Map
-from engine.tiles.items import pick_item, Pedestal
 from engine.tools import move_towards, convert_pos_screen_game, distance
 from engine.tiles.loader import load_tiles
 from time import sleep
@@ -21,16 +18,18 @@ class PygameHandler:
 
         self.width = 960
         self.height = 832
+        #
+        # self.width = (14 + 2) * 64 # 11 tiles + 2 for the border
+        # self.height = (11 + 2) * 64 # 14 tiles + 2 for the border
+        #
         self.display_width = display_width
         self.display_height = display_height
         self.real_display = pygame.display.set_mode((display_width, display_height))
         self.display = pygame.Surface((self.width, self.height))
-
         #
         pygame.display.set_caption('PycoRogue')
         self.clock = pygame.time.Clock()
-        self.resources = {}
-        self.load_resources()
+        self.resources = load_resources()
         self.player = player
         self.hostile_bullets = []
         self.time_since_last_bullet = 100
@@ -41,7 +40,11 @@ class PygameHandler:
         self.room = None
         self.mouse = False
         self.mouse_pressed = False
-        self.font = None
+        # Purely display related
+        self.hud = None
+        self.hud_data = {}
+        self.map = None
+        self.map_data = {}
         return
 
     def handle_event(self):
@@ -103,7 +106,6 @@ class PygameHandler:
                     shot = True
 
         # Autoshoot with mouse click
-
         if self.mouse_pressed:
             pos = pygame.mouse.get_pos()
             pos = convert_pos_screen_game(self, pos)
@@ -131,13 +133,6 @@ class PygameHandler:
         else:
             self.time_since_last_bullet = 0
 
-    def load_resources(self):
-        for root, dirs, files in walk(join("resources", "textures")):
-            for filename in files:
-                if filename.endswith('.png'):
-                    self.resources[filename] = pygame.image.load(join("resources", "textures", filename)).convert_alpha()
-        print(self.resources)
-
     def draw_bullets(self):
         for bullet in self.player.bullets + self.hostile_bullets:
             bullet.age += 1
@@ -154,9 +149,19 @@ class PygameHandler:
 
 
     def draw_map(self):
+        step = 5
+
+        if self.map_data.get('room_id') == self._map.get_current_room().id and self.map:
+            self.real_display.blit(self.map, ((self.display_width - self.map.get_width() - (step * self._map.width)), 0))
+            return
+
         gray = self.resources['gray_square_map.png']
         white = self.resources['white_square_map.png']
         white_x = self.resources['white_square_map_x.png']
+
+        self.map = pygame.Surface((self._map.width * gray.get_width() +  (step * self._map.width), self._map.height * gray.get_width() +  (step * self._map.height)), pygame.SRCALPHA)
+
+        self.map_data['room_id'] = self._map.get_current_room().id
 
         for y in range(0, self._map.height):
             for x in range(0, self._map.width):
@@ -170,7 +175,10 @@ class PygameHandler:
                         if room.special == "💀":
                             res = res.copy()
                             res.blit(self.resources['skull_map.png'], (0, 0))
-                    self.display.blit(res, ((self.width - 300) + ((res.get_width() - 2) * x), 30 + ((res.get_height() - 2) * y)))
+                    print('x', res.get_width() * x)
+                    print('y', res.get_height() * y)
+                    self.map.blit(res, (((res.get_width() + step) * x), ((res.get_height() + step) * y)))
+        self.real_display.blit(self.map, (self.display_width - self.map.get_width(), 0))
         return
 
     def draw_tiles(self):
@@ -198,19 +206,33 @@ class PygameHandler:
             self.known_rooms[room.id] = self.tiles
     
     def draw_hud(self):
+
+        # We only update the hud if its data has changed
+        if self.hud_data.get('lives') == self.player.lives:
+            if self.hud_data.get('coins') == self.player.coins:
+                if self.hud_data.get('level') == self.level and self.hud:
+                    self.real_display.blit(self.hud, (0, 0))
+                    return
+        
+        self.hud = pygame.Surface((self.display_width, self.display_height), pygame.SRCALPHA)
+        self.hud_data['lives'] = self.player.lives
+        self.hud_data['coins'] = self.player.coins
+        self.hud_data['level'] = self.level
         # Draw lives
         tile_width = self.resources["life.png"].get_width()
         for i in range(0, self.player.max_lives):
             if i < self.player.lives:
-                self.real_display.blit(self.resources["life.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
+                self.hud.blit(self.resources["life.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
             else:
-                self.real_display.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
+                self.hud.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
         # Draw coins
-        if not self.font:
-             self.font = pygame.font.Font("resources/fonts/NemoyMedium.otf", 32)
-        text = self.font.render("{:02d}".format(self.player.coins), True, (0,0,0))
-        self.real_display.blit(self.resources['coin.png'], (32, 100))
-        self.real_display.blit(text, (32 + 64, 108))
+        coins_text = self.resources["NemoyMedium.otf"].render("{:02d}".format(self.player.coins), True, (0,0,0))
+        self.hud.blit(self.resources['coin.png'], (32, 100))
+        self.hud.blit(coins_text, (32 + 64, 108))
+        #
+        level_text = self.resources["NemoyMedium.otf"].render("Level {}".format(self.level), True, (0,0,0))
+        self.hud.blit(level_text, ((self.display_width / 2) - level_text.get_width() / 2, self.display_height - 128))
+        self.real_display.blit(self.hud, (0, 0))
 
     def draw_player(self):
         if self.player.time_since_last_damage < self.player.invulnerability_frames:
@@ -222,7 +244,6 @@ class PygameHandler:
         self.draw_tiles()
         self.draw_player()
         self.draw_bullets()
-        self.draw_map()
 
         # Scaling
         scaled = pygame.transform.scale(self.display, (self.width, self.height))
@@ -239,7 +260,10 @@ class PygameHandler:
 
         self.real_display.fill((255, 255, 255))
         self.real_display.blit(scaled, (step, 0))
+        # self.real_display.blit(self.display, (0, 0))
+
         self.draw_hud()
+        self.draw_map()
         pygame.display.update()
 
     def handle_collisions(self):

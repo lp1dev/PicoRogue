@@ -10,7 +10,8 @@ class Eye(Monster):
         self.bullets_delay = 70 - (level * 2)
         self.last_bullet = 0
         self.bullet_speed = 5
-        Monster.__init__(self, x, y, damage, None, collide)
+        self.lives = level * 2
+        Monster.__init__(self, x, y, damage, None, collide, self.lives)
 
     def play(self, pygame_handler):
         self.last_bullet += 1
@@ -24,7 +25,6 @@ class Eye(Monster):
         direc_x, direc_y = (self.bullet_speed * vector_x/distance, self.bullet_speed * vector_y/distance)
         bullet = Bullet(self.x, self.y, direc_x, direc_y, is_player=False, speed=self.bullet_speed, lifespan=100)
         pygame_handler.hostile_bullets.append(bullet)
-        print(pygame_handler.hostile_bullets)
 
 
 
@@ -34,8 +34,9 @@ class Eye2(Monster):
         self.last_bullet = 0
         self.bullet_speed = 4
         self.res = pygame.image.load(join("resources", "textures", "eye2.png")).convert_alpha()
-        self.speed = level * 2
-        Monster.__init__(self, x, y, damage, self.res, collide)
+        self.speed = level * 1.5
+        self.lives = level * 2
+        Monster.__init__(self, x, y, damage, self.res, collide, self.lives)
 
     def play(self, pygame_handler):
         self.last_bullet += 1
@@ -51,4 +52,3 @@ class Eye2(Monster):
         direc_x, direc_y = (self.bullet_speed * vector_x/distance, self.bullet_speed * vector_y/distance)
         bullet = Bullet(self.x, self.y, direc_x, direc_y, is_player=False, speed=self.bullet_speed, lifespan=100)
         pygame_handler.hostile_bullets.append(bullet)
-        print(pygame_handler.hostile_bullets)

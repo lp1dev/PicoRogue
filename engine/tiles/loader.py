@@ -1,6 +1,8 @@
 from engine.tiles.flame import Flame
 from engine.tiles.monsters.eye import Eye, Eye2
-from engine.tiles.items import pick_item, Pedestal
+from engine.tiles.items import pick_item, ItemPedestal
+from engine.tiles.consumables import pick_consumable, ConsumablePedestal
+from engine.tiles.monsters.bosses import pick_boss
 from engine.tiles.door import Door
 
 BASIC_TILES = {
@@ -8,7 +10,10 @@ BASIC_TILES = {
     "E": {"build":Eye, "level": True},
     "2": {"build":Eye2, "level": True},
     "I": {"build":pick_item, "level": False},
-    "i": {"build":Pedestal, "level": False}
+    "i": {"build":ItemPedestal, "level": False},
+    "c": {"build":ConsumablePedestal, "level": False},
+    "C": {"build":pick_consumable, "level": False},
+    "B": {"build":pick_boss, "level": True}
 }
 
 def load_tiles(pygame_handler):
