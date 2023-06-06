@@ -8,6 +8,7 @@ class GameLoop:
     def __init__(self):
         self.width = 1080
         self.height = 720
+        self.FPS = 60
 
         if len(argv) == 3:
             self.width = int(argv[1])
@@ -16,7 +17,7 @@ class GameLoop:
         self.go_on = True
         self.player = Player()
         self._map = Map(self.player, self.game_data['floor'])
-        self.output = pygame_handler.PygameHandler(self.width, self.height, self.player, self._map)
+        self.output = pygame_handler.PygameHandler(self.width, self.height, self.player, self._map, self.FPS)
         self.loop()
         return
 
@@ -24,7 +25,7 @@ class GameLoop:
         max_fps = 0
         while self.go_on:
 
-            self.output.clock.tick(60)
+            self.output.clock.tick(self.FPS)
             fps = self.output.clock.get_fps()
             if fps > max_fps:
                 max_fps = fps

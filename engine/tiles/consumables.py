@@ -43,10 +43,10 @@ class ConsumablePedestal(Consumable):
         #self.item = pick_consumable(x, y) 
         self.item = Battery(x, y)
         self.font_size = 32
-        self.font = pygame.font.Font(join("resources", "fonts", "NemoyMedium.otf"), self.font_size)
+        self.font = pygame.font.Font(join("resources", "fonts", "PressStart2P-Regular.ttf"), self.font_size)
         self.res = pygame.Surface((self.item.res.get_width() + self.font_size, self.item.res.get_height() + self.font_size), pygame.SRCALPHA)
         self.res.blit(self.item.res, (0, 0))
-        self.res_price = self.font.render("{:02d}".format(self.price), True, (0,0,0))
+        self.res_price = self.font.render("{:02d}".format(self.price), True, (255,255,255))
         self.res.blit(self.res_price, (self.item.res.get_width() / 2, self.item.res.get_height() - 10))
         Consumable.__init__(self, x, y, self.res)
 

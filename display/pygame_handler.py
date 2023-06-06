@@ -9,11 +9,12 @@ from resources.loader import load_resources
 from engine.player import Player
 from engine.map import Map
 from engine.tools import move_towards, convert_pos_screen_game, distance
+from engine.animation import Animation
 from engine.tiles.loader import load_tiles
 from time import sleep
 
 class PygameHandler:
-    def __init__(self, display_width, display_height, player, _map):
+    def __init__(self, display_width, display_height, player, _map, fps):
         pygame.init()
 
         self.width = 960
@@ -80,6 +81,20 @@ class PygameHandler:
         tile_width = self.resources['room_wall_top_right.png'].get_width()
         shot = False
 
+
+
+        if keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]:
+            if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                self.player.orientation = "right"
+            elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                self.player.orientation = "left"
+            self.player.is_moving = True
+        else:
+            self.player.is_moving = False
+
+        if keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
+            self.player.orientation = "right" if keys[pygame.K_RIGHT] else "left"
+
         new_x = self.player.x + (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
         new_y = self.player.y + (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
         if new_x > tile_width and new_x + tile_width < (self.width - tile_width):
@@ -88,12 +103,13 @@ class PygameHandler:
             self.player.y = new_y
 
         # Bullet shots
+
         if (keys[pygame.K_UP] or keys[pygame.K_DOWN] \
             or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) \
                 and self.time_since_last_bullet > self.player.bullets_delay:
                     bullet_vec_x = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * 11 # DEBUG static speed
                     bullet_vec_y = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * 11 # DEBUG static speed
-                    bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
+                    bullet = Bullet(self.player.x + 25, self.player.y + 16, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
                     shot = True
         elif (keys[pygame.K_o] or keys[pygame.K_k] \
@@ -101,7 +117,7 @@ class PygameHandler:
                 and self.time_since_last_bullet > self.player.bullets_delay:
                     bullet_vec_x = (keys[pygame.K_SEMICOLON] - keys[pygame.K_k]) * 11 # DEBUG static speed
                     bullet_vec_y = (keys[pygame.K_l] - keys[pygame.K_o]) * 11 # DEBUG static speed
-                    bullet = Bullet(self.player.x, self.player.y, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
+                    bullet = Bullet(self.player.x + 25, self.player.y + 16, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
                     shot = True
 
@@ -226,19 +242,33 @@ class PygameHandler:
             else:
                 self.hud.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
         # Draw coins
-        coins_text = self.resources["NemoyMedium.otf"].render("{:02d}".format(self.player.coins), True, (0,0,0))
+        coins_text = self.resources["PressStart2P-Regular.ttf"].render("{:02d}".format(self.player.coins), True, (255,255,255))
         self.hud.blit(self.resources['coin.png'], (32, 100))
         self.hud.blit(coins_text, (32 + 64, 108))
         #
-        level_text = self.resources["NemoyMedium.otf"].render("Level {}".format(self.level), True, (0,0,0))
+        level_text = self.resources["PressStart2P-Regular.ttf"].render("Level {}".format(self.level), True, (255,255,255))
         self.hud.blit(level_text, ((self.display_width / 2) - level_text.get_width() / 2, self.display_height - 128))
         self.real_display.blit(self.hud, (0, 0))
 
     def draw_player(self):
+        if self.player.animation_left is None:
+            self.player.animation_left = Animation('player_tileset_left.png', 2, fps=60, tile_length=64, width=2, height=1, duration=0.25)
+            self.player.animation_right = Animation('player_tileset_right.png', 2, fps=60, tile_length=64, width=2, height=1, duration=0.25)
+        
+        player_res = self.resources['player_right.png'] if self.player.orientation == 'right' else self.resources['player_left.png']
+        if self.player.is_moving:
+            if self.player.orientation == 'left':
+                player_res = self.player.animation_left.get_next_frame()
+            elif self.player.orientation == 'right':
+                player_res = self.player.animation_right.get_next_frame()
+    
         if self.player.time_since_last_damage < self.player.invulnerability_frames:
-            self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
+            player_res.set_alpha(128)
         else:
-            self.player.rect = self.display.blit(self.resources['player.png'], (self.player.x, self.player.y))
+            player_res.set_alpha(255)
+            # self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
+        # else:
+        self.player.rect = self.display.blit(player_res, (self.player.x, self.player.y))
 
     def draw(self):
         self.draw_tiles()
@@ -258,7 +288,7 @@ class PygameHandler:
         else:
             step = (self.display_width - (self.display_height / game_ratio)) / 2
 
-        self.real_display.fill((255, 255, 255))
+        self.real_display.fill((15, 31, 43))
         self.real_display.blit(scaled, (step, 0))
         # self.real_display.blit(self.display, (0, 0))
 

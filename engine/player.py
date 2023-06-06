@@ -1,4 +1,3 @@
-
 class Player:
     def __init__(self):
         self.lives = 3
@@ -18,8 +17,12 @@ class Player:
         self.collide = False
         self.time_since_last_damage = 100
         self.inventory = []
+        self.animation_left = None
+        self.animation_right = None
+        self.orientation = "left"
+        self.is_moving = False
         return
-
+    
     def hit(self, damage):
         if self.time_since_last_damage > self.invulnerability_frames:
             self.lives -= damage
