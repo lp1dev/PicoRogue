@@ -6,6 +6,7 @@ from math import sqrt
 from engine.tiles.monsters.monster import Monster
 from engine.tools import move_towards
 from engine.bullet import Bullet
+from engine.animation import Animation
 from engine.tiles.items import pick_item
 
 class Boss(Monster):
@@ -18,6 +19,7 @@ class Boss(Monster):
 class EyeBoss(Boss):
     def __init__(self, x, y, level):
         self.res = pygame.image.load(join("resources", "textures", "boss1.png")).convert_alpha()
+        self.animation = Animation("boss1_tileset.png", 3, fps=60, tile_length=128, selected_frame=0, width=None, height=None, duration=0.20)
 
         self.bullets_delay = 180 - (level * 2)
         self.last_bullet = 0
@@ -29,17 +31,21 @@ class EyeBoss(Boss):
         self.last_phase_shift = 0
         self.bullet_phase = 0
         self.shift_time = (6 + randrange(1,5)) * 60 # 6 sec + 1,5 sec
-
+        self.has_finished_animation = False
 
         Boss.__init__(self, x, y, self.lives, damage=1, res=self.res)
 
     def play(self, pygame_handler):
-        print('Phase', self.phase)
         if self.last_phase_shift > self.shift_time:
             self.phase = 0 if self.phase == 1 else 1
             self.last_phase_shift = 0
+            self.has_finished_animation = False
         else:
             self.last_phase_shift += 1
+        
+        if not self.has_finished_animation:
+            self.res = self.animation.get_next_frame()
+            self.has_finished_animation = self.animation.finished
 
         if self.phase == 1:
             self.speed = 3
@@ -48,6 +54,7 @@ class EyeBoss(Boss):
             self.speed = 0.5
             self.last_bullet += 1
             if self.last_bullet > self.bullets_delay:
+                self.has_finished_animation = False
                 self.shoot(pygame_handler)
                 self.last_bullet = 0
             move_towards(self, pygame_handler.player.x, pygame_handler.player.y)

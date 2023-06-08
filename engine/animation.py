@@ -16,6 +16,7 @@ class Animation:
         self.selected_frame = selected_frame
         self.width = width
         self.height = height
+        self.finished = False
 
     def get_frame(self, frame):
         if self.width and self.height:
@@ -24,12 +25,14 @@ class Animation:
             return self.wide_res.subsurface((self.tile_length * frame, 0, self.tile_length, self.tile_length))
         
     def get_next_frame(self):
+        self.finished = False
         self.timer += 1
         if self.timer >= (self.fps * self.duration_seconds):
             self.timer = 0
             self.frame += 1
             if self.frame >= self.num_frames:
                 self.frame = 0
+                self.finished = True
         output = pygame.Surface((self.tile_length, self.tile_length), pygame.SRCALPHA, 32)
         output.blit(self.wide_res, (0, 0), (self.tile_length * self.frame, 0, self.tile_length, self.tile_length))
         return output

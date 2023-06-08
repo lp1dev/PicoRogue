@@ -27,6 +27,7 @@ class PygameHandler:
         self.display_height = display_height
         self.real_display = pygame.display.set_mode((display_width, display_height))
         self.display = pygame.Surface((self.width, self.height))
+        self.fps = fps
         #
         pygame.display.set_caption('PycoRogue')
         self.clock = pygame.time.Clock()
@@ -41,11 +42,19 @@ class PygameHandler:
         self.room = None
         self.mouse = False
         self.mouse_pressed = False
+        self.keys_timers = {}
         # Purely display related
-        self.hud = None
-        self.hud_data = {}
+        # Map
+        self.display_map = True
         self.map = None
         self.map_data = {}
+        # HUD
+        self.hud = None
+        self.hud_data = {}
+        # Stats
+        self.display_stats = False
+        self.stats_data = {}
+        self.stats = None
         return
 
     def handle_event(self):
@@ -67,9 +76,26 @@ class PygameHandler:
             exit(0)
 
         if keys[pygame.K_r]:
-            self.reset()
-            sleep(0.3)
+            if not self.keys_timers.get(pygame.K_r) or self.keys_timers.get(pygame.K_r) <= 0:
+                self.reset()
+                sleep(0.3)
+            self.keys_timers[pygame.K_r] = self.clock.get_fps() * 0.5 # 0.5 seconds
             return
+        
+        if keys[pygame.K_TAB]:
+            if not self.keys_timers.get(pygame.K_TAB) or self.keys_timers.get(pygame.K_TAB) <= 0:
+                self.display_map = not self.display_map
+                self.hud = None
+            self.keys_timers[pygame.K_TAB] = self.clock.get_fps() * 0.25 # 0.25 seconds
+        
+        if keys[pygame.K_p]:
+            if not self.keys_timers.get(pygame.K_p) or self.keys_timers.get(pygame.K_p) <= 0:
+                self.display_stats = not self.display_stats
+            self.keys_timers[pygame.K_p] = self.clock.get_fps() * 0.25
+
+        for timer in self.keys_timers.keys():
+            if self.keys_timers[timer] > 0:
+                self.keys_timers[timer] -= 1
 
         self.move_player(keys)
         
@@ -246,8 +272,9 @@ class PygameHandler:
         self.hud.blit(self.resources['coin.png'], (32, 100))
         self.hud.blit(coins_text, (32 + 64, 108))
         #
-        level_text = self.resources["PressStart2P-Regular.ttf"].render("Level {}".format(self.level), True, (255,255,255))
-        self.hud.blit(level_text, ((self.display_width / 2) - level_text.get_width() / 2, self.display_height - 128))
+        if self.display_map:
+            level_text = self.resources["PressStart2P-Regular.ttf"].render("Level {}".format(self.level), True, (255,255,255))
+            self.hud.blit(level_text, ((self.display_width / 2) - level_text.get_width() / 2, self.display_height - 128))
         self.real_display.blit(self.hud, (0, 0))
 
     def draw_player(self):
@@ -269,6 +296,52 @@ class PygameHandler:
             # self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
         # else:
         self.player.rect = self.display.blit(player_res, (self.player.x, self.player.y))
+
+    def draw_stats(self):
+        # We only update the stats if its data has changed
+        if self.stats_data.get('speed') == self.player.speed:
+            if self.stats_data.get('bullets_delay') == self.player.bullets_delay:
+                if self.stats_data.get('bullets_lifespan') == self.player.bullets_lifespan:
+                    if self.stats_data.get('bullets_speed') == self.player.bullets_speed:
+                        if self.stats_data.get('invulnerability_frames') == self.player.invulnerability_frames:
+                            if self.stats_data.get('damage') == self.player.damage:
+                                if self.stats_data.get('fps') == int(self.clock.get_fps()):
+                                    self.real_display.blit(self.stats, (40, 200))
+                                    return
+        
+        step = 30 # pixels
+
+        self.stats = pygame.Surface((self.display_width, self.display_height), pygame.SRCALPHA)
+
+        self.stats_data['speed'] = self.player.speed
+        self.stats_data['bullets_delay'] = self.player.bullets_delay
+        self.stats_data['bullets_lifespan'] = self.player.bullets_lifespan
+        self.stats_data['bullets_speed'] = self.player.bullets_speed
+        self.stats_data['invulnerability_frames'] = self.player.invulnerability_frames
+        self.stats_data['damage'] = self.player.damage
+        self.stats_data['fps'] = int(self.clock.get_fps())
+
+        speed_text = self.resources["PressStart2P-Regular.ttf"].render("Speed     : {}".format(self.player.speed), True, (255,255,255))
+        bullets_delay_text = self.resources["PressStart2P-Regular.ttf"].render("blt delay : {}".format(self.player.bullets_delay), True, (255,255,255))
+        bullets_lifespan_text = self.resources["PressStart2P-Regular.ttf"].render("blt durat*: {}".format(self.player.bullets_lifespan), True, (255,255,255))
+        bullets_speed_text = self.resources["PressStart2P-Regular.ttf"].render("blt speed : {}".format(self.player.bullets_speed), True, (255,255,255))
+        invulnerability_frames_text = self.resources["PressStart2P-Regular.ttf"].render("Inv frames: {}".format(self.player.invulnerability_frames), True, (255,255,255))
+        damage_text = self.resources["PressStart2P-Regular.ttf"].render("Damage    : {}".format(self.player.damage), True, (255,255,255))
+        fps_text = self.resources["PressStart2P-Regular.ttf"].render("FPS       : {}".format(int(self.clock.get_fps())), True, (255,255,255))
+
+        # Player stats
+        self.stats.blit(speed_text, (0, step))
+        self.stats.blit(bullets_delay_text, (0, 32 + step * 2))
+        self.stats.blit(bullets_lifespan_text, (0, 64 + step * 3))
+        self.stats.blit(bullets_speed_text, (0, 96 + step * 4))
+        self.stats.blit(invulnerability_frames_text, (0, 128 + step * 5))
+        self.stats.blit(damage_text, (0, 160 + step * 6))
+        # Other stats
+        self.stats.blit(fps_text, (0, 192 + step * 8))
+
+        self.real_display.blit(self.stats, (40, 200))
+
+        return
 
     def draw(self):
         self.draw_tiles()
@@ -293,7 +366,11 @@ class PygameHandler:
         # self.real_display.blit(self.display, (0, 0))
 
         self.draw_hud()
-        self.draw_map()
+
+        if self.display_map:
+            self.draw_map()
+        if self.display_stats:
+            self.draw_stats()
         pygame.display.update()
 
     def handle_collisions(self):
@@ -384,7 +461,7 @@ class PygameHandler:
                     if isinstance(tile, TrapDoor):
                         has_trapdoor = True
                 if not has_trapdoor:
-                    tile = TrapDoor(400, 400)
+                    tile = TrapDoor((self.width / 2) - 32, (self.height /2) - 32)
                     self.tiles.append(tile)
             for tile in self.tiles:
                 if isinstance(tile, Door) and not tile.is_open:
