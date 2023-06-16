@@ -8,7 +8,7 @@ class GameLoop:
     def __init__(self):
         self.width = 1080
         self.height = 720
-        self.FPS = 60
+        self.FPS = 30
 
         if len(argv) == 3:
             self.width = int(argv[1])
