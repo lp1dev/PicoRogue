@@ -221,8 +221,8 @@ class PygameHandler:
                 elif bullet in self.hostile_bullets:
                     self.hostile_bullets.remove(bullet)
                 self.renderer.remove(bullet.id)
-
-            bullet.rect = self.renderer.future_render(bullet.res, (next_x, next_y), bullet.id, real_screen=False, force_redraw=False, weight=2)
+            else:
+                bullet.rect = self.renderer.future_render(bullet.res, (next_x, next_y), bullet.id, real_screen=False, force_redraw=False, weight=2)
 
 
     def draw_map(self):

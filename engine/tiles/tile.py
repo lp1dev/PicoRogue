@@ -3,7 +3,7 @@ from random import randrange
 
 class Tile:
     def __init__(self, x, y, damage=0, res=None, collide=False, block_bullets=True):
-        self.id = randrange(0, 99999)
+        self.id = "tile_%s" %randrange(0, 99999)
         self.x = x
         self.y = y
         self.damage = damage

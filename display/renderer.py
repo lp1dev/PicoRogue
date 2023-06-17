@@ -102,7 +102,7 @@ class Renderer:
                     diff_rects = sub_rect(rect_old, rect_new)
                     print('diff_rects', diff_rects)
                     for diff_rect in diff_rects:
-                        # pygame.draw.rect(self.real_display, (0, 0, 255), diff_rect)
+                        # pygame.draw.rect(self.real_display, (0, 255, 0), diff_rect)
                         pygame.display.update(diff_rect)
         return
     
@@ -111,6 +111,7 @@ class Renderer:
         print('Redrawing after delete', res)
         sorted_rendered = sorted(self.rendered.keys(), key=lambda x: self.rendered[x]['weight'])
 
+        res = self.rendered[res['id']]
         for res_id in sorted_rendered:
             if res_id != res['id']:
                 rect1 = pygame.Rect(res['pos'][0], res['pos'][1], res['res'].get_width(), res['res'].get_height())
