@@ -48,6 +48,7 @@ class PygameHandler:
         self.mouse = False
         self.mouse_pressed = False
         self.keys_timers = {}
+        self.current_room = None
         # Purely display related
         self.background_color = None
         self.displayed_res = []
@@ -131,9 +132,7 @@ class PygameHandler:
         if self.player.lives < 1:
             return
         # Movement
-        tile_width = self.resources['room_wall_top_right.png'].get_width()
         shot = False
-
 
 
         if keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]:
@@ -216,13 +215,13 @@ class PygameHandler:
             bullet.x = next_x
             bullet.y = next_y
             if bullet.age > bullet.lifespan:
+                bullet.destroy(self)
                 if bullet in self.player.bullets:
                     self.player.bullets.remove(bullet)
                 elif bullet in self.hostile_bullets:
                     self.hostile_bullets.remove(bullet)
-                self.renderer.remove(bullet.id)
             else:
-                bullet.rect = self.renderer.future_render(bullet.res, (next_x, next_y), bullet.id, real_screen=False, force_redraw=False, weight=2)
+                bullet.rect = self.renderer.future_render(bullet.res, (next_x, next_y), bullet.id, real_screen=False, force_redraw=False, weight=3)
 
 
     def draw_map(self):
@@ -260,12 +259,17 @@ class PygameHandler:
 
     def draw_tiles(self):
             self.renderer.future_render(self.resources['bg1.png'], (0, 0), "background", real_screen=False, force_redraw=False, weight=1)
-            return 
             room = self._map.get_current_room()
 
+            if self.current_room != room.id:
+                self.renderer.remove_tiles()
+                pygame.display.update()
+
             if room.id in self.known_rooms.keys():
+                self.current_room = room.id
                 self.tiles = self.known_rooms[room.id]
             else:
+                self.current_room = room.id
                 self.known_rooms[room.id] = []
                 self.tiles = []
 
@@ -274,8 +278,9 @@ class PygameHandler:
                     if tile.destroyed:
                         tile.after_destroyed(self)
                         self.tiles.remove(tile)
+                        self.renderer.remove(tile.id)
                     else:
-                        self.blit(tile.res, (tile.x, tile.y))
+                        tile.rect = self.renderer.future_render(tile.res, (tile.x, tile.y), tile.id, real_screen=False, force_redraw=False, weight=2)
                 return
             else:
                 load_tiles(self)
@@ -288,7 +293,7 @@ class PygameHandler:
             return
         
         tile_width = self.resources["life.png"].get_width()
-        lives = pygame.Surface(((tile_width * 1.2) * self.player.lives, tile_width * 2), pygame.SRCALPHA)
+        lives = pygame.Surface(((tile_width * 1.2) * (self.player.lives + 1), tile_width * self.player.max_lives), pygame.SRCALPHA)
         self.hud_data['lives'] = self.player.lives
 
         for i in range(0, self.player.max_lives):
@@ -345,7 +350,7 @@ class PygameHandler:
             player_res.set_alpha(255)
             # self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
         # else:
-        self.renderer.future_render(player_res, (self.player.x, self.player.y), "player", real_screen=False, force_redraw=False, weight=3)
+        self.player.rect = self.renderer.future_render(player_res, (self.player.x, self.player.y), "player", real_screen=False, force_redraw=False, weight=3)
         # self.player.rect = self.display.blit(player_res, (self.player.x, self.player.y))
 
     def draw_stats(self):
@@ -394,6 +399,31 @@ class PygameHandler:
             self.stats_data['bullets_delay'] = self.player.bullets_delay
         else:
             self.renderer.future_render(self.cache['stats_bullets_delay_text'], (step_x, step_y + 32 * 2), "stats_bullets_delay")
+    
+        if self.player.bullets_lifespan != self.stats_data.get('bullets_lifespan') or self.cache.get('stats_bullets_lifespan_text') is None:
+            bullets_lifespan_text = self.resources["PressStart2P-Regular.ttf"].render("blt durat*: {}".format(self.player.bullets_lifespan), True, (255,255,255))
+            self.renderer.future_render(bullets_lifespan_text, (step_x, step_y + 32 * 3), "stats_bullets_lifespan")
+            self.cache['stats_bullets_lifespan_text'] = bullets_lifespan_text
+            self.stats_data['bullets_lifespan'] = self.player.bullets_lifespan
+        else:
+            self.renderer.future_render(self.cache['stats_bullets_lifespan_text'], (step_x, step_y + 32 * 3), "stats_bullets_lifespan")
+
+        if self.player.bullets_speed != self.stats_data.get('bullets_speed') or self.cache.get('stats_bullets_speed_text') is None:
+            bullets_speed_text = self.resources["PressStart2P-Regular.ttf"].render("blt speed : {}".format(self.player.bullets_speed), True, (255,255,255))
+            self.renderer.future_render(bullets_speed_text, (step_x, step_y + 32 * 4), "stats_bullets_speed")
+            self.cache['stats_bullets_speed_text'] = bullets_speed_text
+            self.stats_data['bullets_speed'] = self.player.bullets_speed
+        else:
+            self.renderer.future_render(self.cache['stats_bullets_speed_text'], (step_x, step_y + 32 * 4), "stats_bullets_speed")
+
+        if self.player.invulnerability_frames != self.stats_data.get('invulnerability_frames') or self.cache.get('invulnerability_frames') is None:
+            invulnerability_frames_text = self.resources["PressStart2P-Regular.ttf"].render("Inv frames: {}".format(self.player.invulnerability_frames), True, (255,255,255))
+            self.renderer.future_render(invulnerability_frames_text, (step_x, step_y + 32 * 5), "stats_invulnerability_frames")
+            self.cache['stats_invulnerability_frames_text'] = invulnerability_frames_text
+            self.stats_data['invulnerability_frames'] = self.player.invulnerability_frames
+        else:
+            self.renderer.future_render(self.cache['stats_invulnerability_frames_text'], (step_x, step_y + 32 * 5), "stats_invulnerability_frames")
+
         return
 
     def draw(self):
@@ -537,6 +567,7 @@ class PygameHandler:
                     if bullet in self.player.bullets:
                         if tile.block_bullets:
                             self.player.bullets.remove(bullet)
+                            bullet.destroy(self)
                         tile.hit(self.player.damage)
         for bullet in self.hostile_bullets:
             if bullet.rect.colliderect(self.player.rect):

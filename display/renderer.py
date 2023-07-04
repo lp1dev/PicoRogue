@@ -3,6 +3,7 @@ from display.subrects import sub_rect
 
 class Renderer:
     def __init__(self, display, real_display, display_width, display_height, game_width, game_height):
+        self.debug = False
         self.display = display
         self.real_display = real_display
         self.display_width = display_width
@@ -10,18 +11,26 @@ class Renderer:
         self.game_width = game_width
         self.game_height = game_height
         self.res_to_render = []
-        self.tiles_rendered = []
         self.rendered = {}
         self.step_x = (self.display_width - self.game_width) / 2
         self.step_y = (self.display_height - self.game_height) / 2
         self.game_ratio = self.game_height / self.game_width
         self.updated_rects = []
         self.show_updates_rects = False
+        self.cycles = 0
         return
-    
-    def remove(self, id):
-        if id in self.rendered:
-            self.rendered[id]['deleted'] = True
+
+
+    def remove_tiles(self):
+        for id in self.rendered.keys():
+            if id.startswith('tile_'):
+                self.rendered[id]['deleted'] = True
+
+    def remove(self, _id):
+        if _id in self.rendered.keys():
+            self.rendered[_id]['deleted'] = True
+        # else:
+        #   print('ID NOT IN SELF.RENDERED', _id)
         return
 
     def future_render(self, res, pos, id, real_screen=True, force_redraw=False, weight=1):
@@ -34,10 +43,11 @@ class Renderer:
             "weight": weight
         }
         self.res_to_render.append(_res)
-        # if real_screen:
-        #     return pygame.rect.Rect(pos[0], pos[1], res.get_width(), res.get_height())
-        # scaled = self.scale(_res)
-        # return pygame.rect.Rect(_res['pos'][0], _res['pos'][1], scaled['res'].get_width(), scaled['res'].get_height())
+
+        if real_screen:
+             return pygame.rect.Rect(pos[0], pos[1], res.get_width(), res.get_height())
+        scaled = self.scale(_res)
+        return pygame.rect.Rect(_res['pos'][0], _res['pos'][1], scaled['res'].get_width(), scaled['res'].get_height())
 
     def scale(self, res):
         res = res.copy()
@@ -66,15 +76,13 @@ class Renderer:
         return
 
     def cleanup_cycle(self):
+        self.cycles += 1
         to_delete = []
-        print(self.rendered)
         for _id in self.rendered.keys():
             if self.rendered[_id].get('deleted'):
-                print('GONNA DELETE', self.rendered[_id])
-                self.redraw_background_afterdelete(self.rendered[_id])
                 to_delete.append(_id)
-                # del self.rendered[_id]
         for _id in to_delete:
+            self.redraw_background_afterdelete(self.rendered[_id])
             del self.rendered[_id]
         return
 
@@ -88,7 +96,6 @@ class Renderer:
         self.render_res(tile.res, (tile.x, tile.y), tile.id)
         
     def redraw_background_aftermove(self, res_old, res_new):
-        print('Redrawing after move', res_old, res_new)
         sorted_rendered = sorted(self.rendered.keys(), key=lambda x: self.rendered[x]['weight'])
 
         for res_id in sorted_rendered:
@@ -100,27 +107,33 @@ class Renderer:
                 if rect.colliderect(rect_old):
                     self.real_display.blit(res['res'], (res['x'], res['y'])) # We blit the whole res again but don't update all of the screen
                     diff_rects = sub_rect(rect_old, rect_new)
-                    print('diff_rects', diff_rects)
                     for diff_rect in diff_rects:
-                        # pygame.draw.rect(self.real_display, (0, 255, 0), diff_rect)
+                        if self.debug:
+                            pygame.draw.rect(self.real_display, (0, 255, 0), diff_rect)
                         pygame.display.update(diff_rect)
         return
     
     def redraw_background_afterdelete(self, res):
         # Reblitting the background after res delete
-        print('Redrawing after delete', res)
         sorted_rendered = sorted(self.rendered.keys(), key=lambda x: self.rendered[x]['weight'])
 
         res = self.rendered[res['id']]
         for res_id in sorted_rendered:
             if res_id != res['id']:
-                rect1 = pygame.Rect(res['pos'][0], res['pos'][1], res['res'].get_width(), res['res'].get_height())
-                # pygame.draw.rect(self.real_display, (0, 0, 255), rect1)
+                other_res = self.rendered[res_id]
+                rect1 = pygame.Rect(res['x'], res['y'], res['res'].get_width(), res['res'].get_height())
+                if self.debug:
+                    pygame.draw.rect(self.real_display, (0, 0, 255), rect1)
+                # C'est ça qui déconne sur mon rendering, je n'ai pas fait la partie où je dois update le background après
+                # avoir supprimé un res
+
+                if rect1.colliderect(pygame.Rect(other_res['x'], other_res['y'], other_res['res'].get_width(), other_res['res'].get_height())):
+                    self.real_display.blit(other_res['res'], (other_res['x'], other_res['y']))
+
                 pygame.display.update(rect1)
 
     def redraw_background_res_update(self, res):
         # Reblitting the background after res change
-        print('Redrawing after res update', res)
         sorted_rendered = sorted(self.rendered.keys(), key=lambda x: self.rendered[x]['weight'])
 
         for res_id in sorted_rendered:
@@ -130,16 +143,17 @@ class Renderer:
                 rect2 = pygame.Rect(other_res['x'], other_res['y'], other_res['res'].get_width(), other_res['res'].get_height())
                 if rect1.colliderect(rect2):
                     self.real_display.blit(other_res['res'], (other_res['x'], other_res['y']))
-                    pygame.display.update(rect2)
+                    if self.debug:
+                        pygame.draw.rect(self.real_display, (0, 255, 255), rect1)
+                    pygame.display.update(rect1)
 
         return
 
     def render_res(self, res_obj):
 
         known_res = self.rendered.get(res_obj['id'])
-        # print('Rendering:', res_obj)
-        # if self.updated_rects:
-            # print('self.updated_rects', self.updated_rects)
+
+        # TODO make it that if a res is on the fake screen and outside of the rect of the fake screen, it is not rendered 
 
         if known_res and known_res.get('deleted') or res_obj.get('deleted'):
             raise Exception('Trying to render deleted res')
@@ -150,17 +164,15 @@ class Renderer:
                 if res['weight'] < res_obj['weight']:
                     res_obj['force_redraw'] = True
         if known_res:
-            # print('Known res:', known_res)
             if known_res["x"] != res_obj['pos'][0] or known_res["y"] != res_obj['pos'][1]:
                 self.redraw_background_aftermove(known_res, res_obj)
             elif known_res["res"] == res_obj['res']:
                 if not res_obj['force_redraw']:
-                    # print('No need to redraw', res_obj)
                     return
             else:
+                pass
                 self.redraw_background_res_update(res_obj)
     
-        print('Have chosen to render:', res_obj)
 
         self.debug_rect(res_obj, (0, 255, 0))
         rect = self.real_display.blit(res_obj['res'], (res_obj['pos'][0], res_obj['pos'][1]))

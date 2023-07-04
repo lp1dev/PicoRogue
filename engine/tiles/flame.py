@@ -19,6 +19,7 @@ class Flame(Tile):
             self.destroyed = True
 
     def after_destroyed(self, pygame_handler):
+        super().after_destroyed(pygame_handler)
         if randrange(0, 6) == 1:
             pygame_handler.tiles.append(pick_consumable(self.x, self.y))
         return
