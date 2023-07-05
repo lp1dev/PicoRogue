@@ -24,6 +24,6 @@ class Player:
         return
     
     def hit(self, damage):
-        if self.time_since_last_damage > self.invulnerability_frames:
+        if self.time_since_last_damage > self.invulnerability_frames and self.lives > 0:
             self.lives -= damage
             self.time_since_last_damage = 0

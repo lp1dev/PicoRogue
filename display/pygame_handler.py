@@ -8,7 +8,6 @@ from engine.tiles.monsters.monster import Monster
 from resources.loader import load_resources
 from engine.player import Player
 from engine.map import Map
-from engine.tools import move_towards, convert_pos_screen_game, distance
 from engine.animation import Animation
 from engine.tiles.loader import load_tiles
 from pygame.locals import *
@@ -70,12 +69,12 @@ class PygameHandler:
         self.cache = {}
         return
 
-    def blit(self, res, pos, display="game"):
-        rect = Rect(pos[0], pos[1], res.get_width(), res.get_height())
-        if (pos[0], pos[1], res, rect) not in self.displayed_res:
-            self.displayed_res.append((pos[0], pos[1], res, rect, display))
-            self.future_blit(pos[0], pos[1], res, display)
-        return rect
+    # def blit(self, res, pos, display="game"):
+    #     rect = Rect(pos[0], pos[1], res.get_width(), res.get_height())
+    #     if (pos[0], pos[1], res, rect) not in self.displayed_res:
+    #         self.displayed_res.append((pos[0], pos[1], res, rect, display))
+    #         self.future_blit(pos[0], pos[1], res, display)
+    #     return rect
 
     def future_blit(self, x, y, res, display="game"):
         rect = Rect(x, y, res.get_width(), res.get_height())
@@ -133,7 +132,7 @@ class PygameHandler:
             return
         # Movement
         shot = False
-
+        tile_width = self.renderer.tile_width
 
         if keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]:
             if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
@@ -147,14 +146,13 @@ class PygameHandler:
         if keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
             self.player.orientation = "right" if keys[pygame.K_RIGHT] else "left"
 
-        new_x = self.player.x + (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
-        new_y = self.player.y + (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
-        self.player.x = new_x
-        self.player.y = new_y
-        # if new_x > tile_width and new_x + tile_width < (self.width - tile_width):
-        #     self.player.x = new_x
-        # if new_y > tile_width and new_y + tile_width < (self.height - tile_width):
-        #     self.player.y = new_y
+        if keys[pygame.K_d] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_w]:
+            new_x = self.player.x + (keys[pygame.K_d] - keys[pygame.K_a]) * self.player.speed
+            new_y = self.player.y + (keys[pygame.K_s] - keys[pygame.K_w]) * self.player.speed
+            if new_x > tile_width and new_x < self.renderer.game_width - (tile_width * 2):
+                self.player.x = new_x
+            if new_y > tile_width and new_y < self.renderer.game_height - (tile_width * 2):
+                self.player.y = new_y
 
         # Bullet shots
 
@@ -179,7 +177,7 @@ class PygameHandler:
             pos = pygame.mouse.get_pos()
             # pos = convert_pos_screen_game(self, pos)
             # self.blit(self.resources['crosshair.png'], (pos[0] - 16, pos[1] - 16))
-            print('self.resources[crosshair.png]', self.resources['crosshair.png'])
+            # print('self.resources[crosshair.png]', self.resources['crosshair.png'])
             self.renderer.future_render(self.resources['crosshair.png'], (pos[0] - 16, pos[1] - 16), "crosshair", real_screen=True, force_redraw=False, weight=4)
             # move_towards(self.player, pos[0], pos[1])
             # print(self.time_since_last_bullet, self.player.bullets_delay)
@@ -228,7 +226,7 @@ class PygameHandler:
         step = 5
 
         if self.map_data.get('room_id') == self._map.get_current_room().id and self.map:
-            self.blit(self.map, (self.display_width - self.map.get_width() - (step * self._map.width), 0), "real")
+            self.renderer.future_render(self.map, (self.display_width - self.map.get_width() - (step * self._map.width), 0), "map", True)
             return
 
         gray = self.resources['gray_square_map.png']
@@ -251,10 +249,8 @@ class PygameHandler:
                         if room.special == "💀":
                             res = res.copy()
                             res.blit(self.resources['skull_map.png'], (0, 0))
-                    print('x', res.get_width() * x)
-                    print('y', res.get_height() * y)
                     self.map.blit(res, (((res.get_width() + step) * x), ((res.get_height() + step) * y)))
-        self.blit(self.map, (self.display_width - self.map.get_width(), 0), "real")
+        self.renderer.future_render(self.map, (self.display_width - self.map.get_width() - (step * self._map.width), 0), "map", True)
         return
 
     def draw_tiles(self):
@@ -263,6 +259,7 @@ class PygameHandler:
 
             if self.current_room != room.id:
                 self.renderer.remove_tiles()
+                self.renderer.remove_bullets()
                 pygame.display.update()
 
             if room.id in self.known_rooms.keys():
@@ -287,12 +284,18 @@ class PygameHandler:
 
             self.known_rooms[room.id] = self.tiles
 
-    def draw_lives(self):
+    def draw_hud(self):
+        self.draw_hud_lives()
+        self.draw_hud_coins()
+
+    def draw_hud_lives(self):
         if self.hud_data.get('lives') == self.player.lives and self.cache.get('lives'):
             self.renderer.future_render(self.cache['lives'], (32, 32), "lives")
             return
         
         tile_width = self.resources["life.png"].get_width()
+        lives = None
+
         lives = pygame.Surface(((tile_width * 1.2) * (self.player.lives + 1), tile_width * self.player.max_lives), pygame.SRCALPHA)
         self.hud_data['lives'] = self.player.lives
 
@@ -302,35 +305,35 @@ class PygameHandler:
             else:
                 lives.blit(self.resources["life_empty.png"], (tile_width * 1.2 * (i + 1), tile_width / 2))
         self.cache['lives'] = lives
-        self.renderer.future_render(lives, (32, 32), "lives")
+        self.renderer.future_render(lives, (32, 32), "lives", real_screen=True, force_redraw=True)
     
-    def draw_hud(self):
-
-        # We only update the hud if its data has changed
-        if self.hud_data.get('lives') == self.player.lives:
-            if self.hud_data.get('coins') == self.player.coins:
-                if self.hud_data.get('level') == self.level and self.hud:
-                    self.renderer.future_render(self.hud, (0, 0), "hud")
-                    # self.blit(self.hud, (0, 0), "real") 
-                    return
+    def draw_hud_coins(self):
+        if self.hud_data.get('coins') == self.player.coins and self.cache['coins']:
+            self.renderer.future_render(self.cache['coins'], (0, 0), "hud_coins")
+            return
         
-        # self.hud = pygame.Surface((32 * , self.display_height), pygame.SRCALPHA)
-        self.hud_data['lives'] = self.player.lives
+        hud_coins = pygame.Surface((32 * 10, self.display_height), pygame.SRCALPHA)
         self.hud_data['coins'] = self.player.coins
-        self.hud_data['level'] = self.level
-        # Draw lives
      
-        # Draw coins
         coins_text = self.resources["PressStart2P-Regular.ttf"].render("{:02d}".format(self.player.coins), True, (255,255,255))
-        self.hud.blit(self.resources['coin.png'], (32, 100))
-        self.hud.blit(coins_text, (32 + 64, 108))
-        #
-        if self.display_map:
-            level_text = self.resources["PressStart2P-Regular.ttf"].render("Level {}".format(self.level), True, (255,255,255))
-            self.hud.blit(level_text, ((self.display_width / 2) - level_text.get_width() / 2, self.display_height - 128))
-        self.renderer.future_render(self.hud, (0, 0), "hud")
+        hud_coins.blit(self.resources['coin.png'], (32, 120))
+        hud_coins.blit(coins_text, (32 + 64, 132))
+
+        self.renderer.future_render(hud_coins, (0, 0), "coins_hud")
+        self.cache['coins'] = hud_coins
         
-        # self.blit(self.hud, (0, 0), "real")
+    def draw_hud_level(self):
+        if self.hud_data.get('level') == self.level and self.cache.get('level'):
+            self.renderer.future_render(self.cache['level'], (self.display_width / 2 - 128, self.display_height - 64), "hud_level")
+            return
+        
+        level_text = self.resources["PressStart2P-Regular.ttf"].render("Level {}".format(self.level), True, (255,255,255))
+        hud_level = pygame.Surface((level_text.get_width(), level_text.get_height()), pygame.SRCALPHA)
+        self.hud_data['level'] = self.level
+        hud_level.blit(level_text, (0, 0))
+        self.renderer.future_render(hud_level, (self.display_width / 2 - 128, self.display_height - 64), "hud_level")
+        self.cache['level'] = hud_level
+        return
 
     def draw_player(self):
         if self.player.animation_left is None:
@@ -368,7 +371,6 @@ class PygameHandler:
         step_x = 30 # pixels
         step_y = 200 # pixels
 
-
         self.stats_data['bullets_lifespan'] = self.player.bullets_lifespan
         self.stats_data['bullets_speed'] = self.player.bullets_speed
         self.stats_data['invulnerability_frames'] = self.player.invulnerability_frames
@@ -383,7 +385,6 @@ class PygameHandler:
         fps_text = self.resources["PressStart2P-Regular.ttf"].render("FPS       : {}".format(int(self.clock.get_fps())), True, (255,255,255))
 
         # Player stats
-        print(self.player.speed, self.stats_data.get('speed'), self.player.speed != self.stats_data.get('speed'))
         if self.player.speed != self.stats_data.get('speed'):
             speed_text = self.resources["PressStart2P-Regular.ttf"].render("Speed     : {}".format(self.player.speed), True, (255,255,255))
             self.renderer.future_render(speed_text, (step_x, step_y), "stats_speed")
@@ -424,25 +425,43 @@ class PygameHandler:
         else:
             self.renderer.future_render(self.cache['stats_invulnerability_frames_text'], (step_x, step_y + 32 * 5), "stats_invulnerability_frames")
 
+        if self.player.damage != self.stats_data.get('damage') or self.cache.get('damage') is None:
+            damage_text = self.resources["PressStart2P-Regular.ttf"].render("Damage    : {}".format(self.player.damage), True, (255,255,255))
+            self.renderer.future_render(damage_text, (step_x, step_y + 32 * 6), "stats_damage")
+            self.cache['stats_damage_text'] = damage_text
+            self.stats_data['damage'] = self.player.damage
+        else:
+            self.renderer.future_render(self.cache['stats_damage_text'], (step_x, step_y + 32 * 6), "stats_damage")
+
+        # Game stats
+        if self.clock.get_fps() != self.stats_data.get('fps') or self.cache.get('fps') is None:
+            fps_text = self.resources["PressStart2P-Regular.ttf"].render("FPS       : {}".format(int(self.clock.get_fps())), True, (255,255,255))
+            self.renderer.future_render(fps_text, (step_x, step_y + 32 * 8), "stats_fps")
+            self.cache['stats_fps_text'] = fps_text
+            self.stats_data['fps'] = self.clock.get_fps()
+
         return
 
     def draw(self):
         if self.background_color is None:
-            self.background_color = pygame.Surface((self.renderer.step_x, self.display_height))
-            self.background_color.fill((15, 31, 43))
-        self.renderer.future_render(self.background_color, (0, 0), "background_color", real_screen=True, force_redraw=False, weight=0)
+            self.background_color = self.renderer.background_color
+            pygame.draw.rect(self.real_display, self.background_color, (0, 0, self.display_width, self.display_height))
+
         self.draw_tiles()
         self.draw_player()
         self.draw_bullets()
         if self.display_stats:
             self.draw_stats()
-        self.draw_lives()
-        # self.draw_hud()
+        else:
+            self.renderer.remove_prefix("stats_")
+        self.draw_hud()
+        if self.display_map:
+            self.draw_map()
+            self.draw_hud_level()
+        else:
+            self.renderer.remove("map")
+            self.renderer.remove("hud_level")
         self.renderer.render_cycle()
-        pass
-        
-        # self.draw_tiles()
-        # self.draw_player()
 
         # for to_draw in self.displayed_res:
         #     if to_draw[4] == 'game':
@@ -520,7 +539,7 @@ class PygameHandler:
                     return
 
                 if isinstance(tile, Door) and tile.is_open:
-                    print(self._map.cursor)
+                    # print(self._map.cursor)
                     if tile.door_up:
                         self._map.move(self._map.cursor[0] - 1, self._map.cursor[1])
                         self.player.x = tile.x
