@@ -1,9 +1,10 @@
 import pygame
 from display.subrects import sub_rect
+from sys import argv
 
 class Renderer:
     def __init__(self, display, real_display, display_width, display_height, game_width, game_height):
-        self.debug = False
+        self.debug = 'debug' in argv
         self.display = display
         self.real_display = real_display
         self.display_width = display_width
@@ -122,11 +123,13 @@ class Renderer:
                 rect_new = pygame.Rect(res_new['pos'][0], res_new['pos'][1], res_new['res'].get_width(), res_new['res'].get_height())
                 if rect.colliderect(rect_old):
                     self.real_display.blit(res['res'], (res['x'], res['y'])) # We blit the whole res again but don't update all of the screen
+                    # self.real_display.blit(res_old['res'], (res_old['x'], res_old['y'])) # We blit the whole res again but don't update all of the screen
                     diff_rects = sub_rect(rect_old, rect_new)
                     for diff_rect in diff_rects:
                         if self.debug:
                             pygame.draw.rect(self.real_display, (0, 255, 0), diff_rect)
                         pygame.display.update(diff_rect)
+                        pygame.display.update(rect_new)
         return
     
     def redraw_background_afterdelete(self, res):

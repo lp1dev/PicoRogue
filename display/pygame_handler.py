@@ -67,6 +67,7 @@ class PygameHandler:
         self.stats_data = {}
         self.stats = None
         self.cache = {}
+        self.joystick_pos = None
         return
 
     # def blit(self, res, pos, display="game"):
@@ -175,10 +176,38 @@ class PygameHandler:
         # Autoshoot with mouse click
         if self.mouse_pressed:
             pos = pygame.mouse.get_pos()
+            pos = (pos[0] - 64, pos[1] - 64)
             # pos = convert_pos_screen_game(self, pos)
             # self.blit(self.resources['crosshair.png'], (pos[0] - 16, pos[1] - 16))
             # print('self.resources[crosshair.png]', self.resources['crosshair.png'])
-            self.renderer.future_render(self.resources['crosshair.png'], (pos[0] - 16, pos[1] - 16), "crosshair", real_screen=True, force_redraw=False, weight=4)
+            if self.joystick_pos is None:
+                self.joystick_center = pos
+                self.joystick_pos = pos
+                self.renderer.future_render(self.resources['joystick.png'], self.joystick_pos, "joystick", real_screen=True, force_redraw=False, weight=5)
+
+            else:
+                diff_pos = (pos[0] - self.joystick_pos[0], pos[1] - self.joystick_pos[1])
+                if abs(diff_pos[0]) > 5 or abs(diff_pos[1]) > 10:
+                    if abs(diff_pos[0]) < 64 and abs(diff_pos[1]) < 64:
+
+                        self.player.x += diff_pos[0] * 0.01 * self.player.speed
+                        self.player.y += diff_pos[1] * 0.01 * self.player.speed
+                        self.renderer.future_render(self.resources['joystick.png'], pos, "joystick", real_screen=True, force_redraw=False, weight=5)
+                    else:
+                        if diff_pos[0] > 0:
+                            self.player.x += self.player.speed
+                        elif diff_pos[0] < 0:
+                            self.player.x -= self.player.speed
+                        if diff_pos[1] > 0:
+                            self.player.y += self.player.speed
+                        elif diff_pos[1] < 0:
+                            self.player.y -= self.player.speed
+                        # self.renderer.future_render(self.resources['joystick.png'], pos, "joystick", real_screen=True, force_redraw=False, weight=5)
+                # else:
+
+        else:
+            self.joystick_pos = None
+            self.renderer.remove("joystick")
             # move_towards(self.player, pos[0], pos[1])
             # print(self.time_since_last_bullet, self.player.bullets_delay)
             # if self.time_since_last_bullet > self.player.bullets_delay:
@@ -197,8 +226,6 @@ class PygameHandler:
             #         bullet = Bullet(self.player.x, self.player.y, dx * 11, dy * 11, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
             #         self.player.bullets.append(bullet)
             #         shot = True
-        else:
-            self.renderer.remove("crosshair")
 
         if not shot:
             self.time_since_last_bullet += 1
@@ -296,7 +323,7 @@ class PygameHandler:
         tile_width = self.resources["life.png"].get_width()
         lives = None
 
-        lives = pygame.Surface(((tile_width * 1.2) * (self.player.lives + 1), tile_width * self.player.max_lives), pygame.SRCALPHA)
+        lives = pygame.Surface(((tile_width * 1.2) * (self.player.max_lives + 1), tile_width * self.player.max_lives), pygame.SRCALPHA)
         self.hud_data['lives'] = self.player.lives
 
         for i in range(0, self.player.max_lives):
