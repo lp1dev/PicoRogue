@@ -1,7 +1,4 @@
 import pygame
-from os import walk
-from os.path import join
-from math import hypot
 from engine.bullet import Bullet
 from engine.tiles.door import Door, TrapDoor
 from engine.tiles.monsters.monster import Monster
@@ -69,13 +66,6 @@ class PygameHandler:
         self.cache = {}
         self.joystick_pos = None
         return
-
-    # def blit(self, res, pos, display="game"):
-    #     rect = Rect(pos[0], pos[1], res.get_width(), res.get_height())
-    #     if (pos[0], pos[1], res, rect) not in self.displayed_res:
-    #         self.displayed_res.append((pos[0], pos[1], res, rect, display))
-    #         self.future_blit(pos[0], pos[1], res, display)
-    #     return rect
 
     def future_blit(self, x, y, res, display="game"):
         rect = Rect(x, y, res.get_width(), res.get_height())
@@ -235,8 +225,8 @@ class PygameHandler:
     def draw_bullets(self):
         for bullet in self.player.bullets + self.hostile_bullets:
             bullet.age += 1
-            next_x = bullet.x + bullet.vec_x
-            next_y = bullet.y + bullet.vec_y
+            next_x = bullet.x + bullet.vec_x * (bullet.speed * 0.1)
+            next_y = bullet.y + bullet.vec_y * (bullet.speed * 0.1)
             bullet.x = next_x
             bullet.y = next_y
             if bullet.age > bullet.lifespan:
@@ -380,7 +370,7 @@ class PygameHandler:
             player_res.set_alpha(255)
             # self.player.rect = self.display.blit(self.resources['player_inv.png'], (self.player.x, self.player.y))
         # else:
-        self.player.rect = self.renderer.future_render(player_res, (self.player.x, self.player.y), "player", real_screen=False, force_redraw=False, weight=3)
+        self.player.rect = self.renderer.future_render(player_res, (self.player.x, self.player.y), "player", real_screen=False, force_redraw=True, weight=3)
         # self.player.rect = self.display.blit(player_res, (self.player.x, self.player.y))
 
     def draw_stats(self):

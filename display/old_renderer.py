@@ -57,7 +57,7 @@ class Renderer:
             "pos": pos,
             "id": id, 
             "real_screen": real_screen, 
-            "force_redraw": force_redraw,
+            "force_redraw": True,
             "weight": weight
         }
         self.res_to_render.append(_res)
@@ -90,6 +90,7 @@ class Renderer:
             self.res_to_render.remove(res)
         self.res_to_render = []
         self.updated_rects = []
+        pygame.display.update()
         return
 
     def cleanup_cycle(self):
@@ -129,7 +130,7 @@ class Renderer:
                         if self.debug:
                             pygame.draw.rect(self.real_display, (0, 255, 0), diff_rect)
                         pygame.display.update(diff_rect)
-                        # pygame.display.update(rect_new)
+                        pygame.display.update(rect_new)
         return
     
     def redraw_background_afterdelete(self, res):
@@ -197,22 +198,16 @@ class Renderer:
                     res_obj['force_redraw'] = True
         if known_res:
             if known_res["x"] != res_obj['pos'][0] or known_res["y"] != res_obj['pos'][1]:
-                self.redraw_background_aftermove(known_res, res_obj) # Not the issue with the player model
-            elif known_res["res"] == res_obj['res'] \
-                and known_res["x"] == res_obj['pos'][0] \
-                    and known_res["y"] == res_obj['pos'][1]:
+                self.redraw_background_aftermove(known_res, res_obj)
+            elif known_res["res"] == res_obj['res']:
                 if not res_obj['force_redraw']:
                     return
             else:
+                pass
                 self.redraw_background_res_update(res_obj)
 
         self.debug_rect(res_obj, (0, 255, 0))
-
         rect = self.real_display.blit(res_obj['res'], (res_obj['pos'][0], res_obj['pos'][1]))
-        pygame.display.update(rect)
-
-        print('res_obj, rect', res_obj, rect)
-
         self.updated_rects.append(res_obj)
 
         self.rendered[res_obj['id']] = {
@@ -226,4 +221,6 @@ class Renderer:
             "deleted": res_obj.get('deleted'),
             "real_screen": res_obj.get('real_screen')
         }
-        
+
+        # pygame.display.update()
+        pygame.display.update((res_obj['pos'][0], res_obj['pos'][1], res_obj['res'].get_width(), res_obj['res'].get_height()))
