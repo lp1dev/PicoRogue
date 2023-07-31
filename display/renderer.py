@@ -1,3 +1,11 @@
+"""
+I think the rendering bug we have left is due to the blit() calls taking too
+much time and the rendering not keeping up with "fast" moving objects.
+
+I should try to optimize my blit to not reblit all of the resources when something
+changed, even though they're not updated on the screen.
+"""
+
 import pygame
 from display.subrects import sub_rect
 from sys import argv
@@ -122,7 +130,7 @@ class Renderer:
                 rect_old = pygame.Rect(res_old['x'], res_old['y'], res_old['res'].get_width(), res_old['res'].get_height())
                 rect_new = pygame.Rect(res_new['pos'][0], res_new['pos'][1], res_new['res'].get_width(), res_new['res'].get_height())
                 if rect.colliderect(rect_old):
-                    self.real_display.blit(res['res'], (res['x'], res['y'])) # We blit the whole res again but don't update all of the screen
+                    self.real_display.blit(res['res'], (res['x'], res['y'])) # We blit the whole res again but don't update all of the screen //TODO optimize this blit
                     # self.real_display.blit(res_old['res'], (res_old['x'], res_old['y'])) # We blit the whole res again but don't update all of the screen
                     diff_rects = sub_rect(rect_old, rect_new)
                     for diff_rect in diff_rects:
@@ -210,8 +218,6 @@ class Renderer:
 
         rect = self.real_display.blit(res_obj['res'], (res_obj['pos'][0], res_obj['pos'][1]))
         pygame.display.update(rect)
-
-        print('res_obj, rect', res_obj, rect)
 
         self.updated_rects.append(res_obj)
 

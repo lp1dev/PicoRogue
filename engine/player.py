@@ -4,12 +4,12 @@ class Player:
         self.max_lives = 3
         self.coins = 0
         self.max_coins = 99
-        self.speed = 2
+        self.speed = 5
         self.x = 0
         self.y = 0
         self.bullets_delay = 20
         self.bullets_lifespan = 30
-        self.bullets_speed = 5
+        self.bullets_speed = 7
         self.invulnerability_frames = 60
         self.bullets = []
         self.rect = None

@@ -29,8 +29,8 @@ class GameLoop:
             fps = self.output.clock.get_fps()
             if fps > max_fps:
                 max_fps = fps
-            print('Max FPS: {}'.format(max_fps))
-            print('FPS: {}'.format(fps))
+            # print('Max FPS: {}'.format(max_fps))
+            # print('FPS: {}'.format(fps))
             self.output.handle_collisions()
             self.output.handle_ennemies()
             self.output.handle_event()
