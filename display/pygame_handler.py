@@ -271,8 +271,12 @@ class PygameHandler:
         return
 
     def draw_tiles(self):
-            self.renderer.future_render(self.resources['bg1.png'], (0, 0), "background", real_screen=False, force_redraw=False, weight=1)
+            
             room = self._map.get_current_room()
+            if room.start:
+                self.renderer.future_render(self.resources['bg1-room1.png'], (0, 0), "background", real_screen=False, force_redraw=False, weight=1)
+            else:
+                self.renderer.future_render(self.resources['bg1.png'], (0, 0), "background", real_screen=False, force_redraw=False, weight=1)
 
             if self.current_room != room.id:
                 self.renderer.remove_tiles()
