@@ -24,7 +24,7 @@ class PygameHandler:
         #
         self.display_width = display_width
         self.display_height = display_height
-        self.real_display = pygame.display.set_mode((display_width,  display_height), FULLSCREEN, 16, 0, 1)
+        self.real_display = pygame.display.set_mode((display_width,  display_height), RESIZABLE, 16, 0, 1)
         self.display = pygame.Surface((self.width, self.height))
         self.display_rect = None
         self.renderer = Renderer(self.display, self.real_display,  self.display_width, self.display_height, self.width, self.height)
@@ -67,14 +67,7 @@ class PygameHandler:
         self.joystick_pos = None
         return
 
-    def future_blit(self, x, y, res, display="game"):
-        rect = Rect(x, y, res.get_width(), res.get_height())
-        if display == "game":
-            self.to_update.append((x, y, res, rect))
-        elif display == "real":
-            self.to_update_real.append((x, y, res, rect))
-        return rect
-
+    # Handle kb/mouse
     def handle_event(self):
         keys = pygame.key.get_pressed()
 
@@ -104,6 +97,7 @@ class PygameHandler:
             if not self.keys_timers.get(pygame.K_TAB) or self.keys_timers.get(pygame.K_TAB) <= 0:
                 self.display_map = not self.display_map
                 self.hud = None
+                self.map = None
             self.keys_timers[pygame.K_TAB] = self.clock.get_fps() * 0.25 # 0.25 seconds
         
         if keys[pygame.K_p]:
@@ -146,7 +140,6 @@ class PygameHandler:
                 self.player.y = new_y
 
         # Bullet shots
-
         if (keys[pygame.K_UP] or keys[pygame.K_DOWN] \
             or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) \
                 and self.time_since_last_bullet > self.player.bullets_delay:
@@ -163,7 +156,8 @@ class PygameHandler:
                     bullet = Bullet(self.player.x + 25, self.player.y + 16, bullet_vec_x, bullet_vec_y, is_player=True, speed=self.player.bullets_speed, damage = self.player.damage, lifespan=self.player.bullets_lifespan)
                     self.player.bullets.append(bullet)
                     shot = True
-        # Autoshoot with mouse click
+
+        # On-Screen joystick with mouse click
         if self.mouse_pressed:
             pos = pygame.mouse.get_pos()
             pos = (pos[0] - 64, pos[1] - 64)
@@ -238,36 +232,41 @@ class PygameHandler:
             else:
                 bullet.rect = self.renderer.future_render(bullet.res, (next_x, next_y), bullet.id, real_screen=False, force_redraw=False, weight=3)
 
-
     def draw_map(self):
-        step = 5
+        step = 5 # Step between map squares
 
-        if self.map_data.get('room_id') == self._map.get_current_room().id and self.map:
-            self.renderer.future_render(self.map, (self.display_width - self.map.get_width() - (step * self._map.width), 0), "map", True)
-            return
+        if not self.map or self.map_data.get('room_id') != self._map.get_current_room().id:
 
-        gray = self.resources['gray_square_map.png']
-        white = self.resources['white_square_map.png']
-        white_x = self.resources['white_square_map_x.png']
+            gray = self.resources['gray_square_map.png']
+            white = self.resources['white_square_map.png']
+            white_x = self.resources['white_square_map_x.png']
 
-        self.map = pygame.Surface((self._map.width * gray.get_width() +  (step * self._map.width), self._map.height * gray.get_width() +  (step * self._map.height)), pygame.SRCALPHA)
+            self.map_width = ((step +  gray.get_width()) * self._map.width) # Step + Step to account for left and right step? Not sure
+            self.map_height = ((step + gray.get_height()) * self._map.height)
 
-        self.map_data['room_id'] = self._map.get_current_room().id
+            self.map = pygame.Surface((self._map.width * gray.get_width(), self._map.height * gray.get_width()), pygame.SRCALPHA)
 
-        for y in range(0, self._map.height):
-            for x in range(0, self._map.width):
-                room = self._map.get_room(y, x)
-                if room:
-                    res = gray if room.id not in self.known_rooms.keys() else white
-                    if y == self._map.cursor[0] and x == self._map.cursor[1]:
-                        res = white_x
-                        self.room = room
-                    if room.special:
-                        if room.special == "💀":
-                            res = res.copy()
-                            res.blit(self.resources['skull_map.png'], (0, 0))
-                    self.map.blit(res, (((res.get_width() + step) * x), ((res.get_height() + step) * y)))
-        self.renderer.future_render(self.map, (self.display_width - self.map.get_width() - (step * self._map.width), 0), "map", True)
+            self.map_data['room_id'] = self._map.get_current_room().id
+
+            for y in range(0, self._map.height):
+                for x in range(0, self._map.width):
+                    room = self._map.get_room(y, x)
+                    if room:
+                        res = gray if room.id not in self.known_rooms.keys() else white
+                        if y == self._map.cursor[0] and x == self._map.cursor[1]:
+                            res = white_x
+                            self.room = room
+                        if room.special:
+                            if room.special == "💀":
+                                res = res.copy()
+                                res.blit(self.resources['skull_map.png'], (0, 0))
+                        tile_width = (res.get_width() + step) * x # It makes my life easier to have a tile_width for readability
+                        self.map.blit(res, ((tile_width), ((res.get_height() + step) * y)))
+
+        map_x = self.real_display.get_width() - self.map_width
+        map_y = 0
+
+        self.renderer.future_render(self.map, (map_x, map_y), "map", real_screen=True, weight=3) # 2 is for tiles, 1 is default, 0 is bg
         return
 
     def draw_tiles(self):
@@ -484,60 +483,6 @@ class PygameHandler:
             self.renderer.remove("hud_level")
         self.renderer.render_cycle()
 
-        # for to_draw in self.displayed_res:
-        #     if to_draw[4] == 'game':
-        #         if to_draw not in self.displayed_last_frame:
-        #             self.display.blit(to_draw[2], (to_draw[0], to_draw[1]))
-
-        # # Scaling
-        # scaled = pygame.transform.scale(self.display, (self.width, self.height))
-        # step = 0
-        # game_ratio = self.height / self.width
-
-        # if self.display_height < self.height:
-        #     scaled = pygame.transform.scale(self.display, (self.display_width * game_ratio, self.display_height))
-
-        # if self.display_width > self.width:
-        #     step = (self.display_width - self.width) / 2
-        # else:
-        #     step = (self.display_width - (self.display_height / game_ratio)) / 2
-
-        # # Actual drawing
-        # self.real_display.fill((15, 31, 43))
-
-
-        # self.display_rect = self.blit(scaled, (step, 0), "real")
-
-
-        # if self.display_map:
-        #     self.draw_map()
-        # if self.display_stats:
-        #     self.draw_stats()
-
-        # print("LEN SELF.DISPLAYED_RES", len(self.displayed_res))
-
-        # for to_draw in self.displayed_res:
-        #     if to_draw[4] == 'real':
-        #         if to_draw not in self.displayed_last_frame:
-        #             self.real_display.blit(to_draw[2], (to_draw[0], to_draw[1]))
-
-
-        
-        # # self.real_display.blit(self.display, (0, 0))
-
-        # for to_update in self.to_update_real:
-        #     print('to_update', to_update)
-        #     pygame.display.update(to_update[3])
-        #     # self.to_update.remove(to_update)
-        # # pygame.display.update(game)
-
-        # self.displayed_last_frame = self.displayed_res
-        # self.displayed_res = []
-        # self.to_update = []
-        # self.to_update_real = []
-        # pygame.display.update()
-
-
     def handle_collisions(self):
         self.handle_player_collisions()
         self.handle_bullets_collision()
@@ -597,6 +542,7 @@ class PygameHandler:
         self.tiles = []
         self.known_rooms = {}
         self._map = Map(self.player, self.level)
+        self.map = None
         return
 
     def handle_bullets_collision(self):

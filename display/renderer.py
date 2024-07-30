@@ -21,8 +21,11 @@ class Renderer:
         self.game_height = game_height
         self.res_to_render = []
         self.rendered = {}
-        self.step_x = (self.display_width - self.game_width) / 2
-        self.step_y = (self.display_height - self.game_height) / 2
+        # self.step_x = (self.display_width - self.game_width) / 2
+        # self.step_y = (self.display_height - self.game_height) / 2
+        self.step_x = (self.real_display.get_width() / 2) - (self.game_width / 2)
+        self.step_y = (self.real_display.get_height() / 2) - (self.game_height / 2)
+        
         self.tile_width = 64
         self.game_ratio = self.game_height / self.game_width
         self.fake_display_rect = pygame.Rect(self.step_x + self.tile_width, self.step_y + self.tile_width, \
@@ -72,18 +75,15 @@ class Renderer:
 
         if real_screen:
              return pygame.rect.Rect(pos[0], pos[1], res.get_width(), res.get_height())
-        scaled = self.scale(_res)
+        scaled = self.scale_up(_res)
         return pygame.rect.Rect(_res['pos'][0], _res['pos'][1], scaled['res'].get_width(), scaled['res'].get_height())
 
-    def scale(self, res):
-        res = res.copy()
+    def scale_up(self, res):
         if self.display_height > self.game_height:
             scaled_res = res['res']
+            res = res.copy()
             res['pos'] = (self.step_x + res['pos'][0], self.step_y + res['pos'][1])
             res['res'] = scaled_res
-        else:
-            print('TODO IMPLEMENT DOWNSCALING')
-            pass
         return res
 
     def render_cycle(self):
@@ -91,7 +91,7 @@ class Renderer:
         sorted_res = sorted(self.res_to_render, key=lambda x: x['weight'])
         for res in sorted_res:
             if not res['real_screen']:
-                scaled_res = self.scale(res)
+                scaled_res = self.scale_up(res)
                 self.render_res(scaled_res)
             else:
                 self.render_res(res)
@@ -227,7 +227,7 @@ class Renderer:
             "y": res_obj['pos'][1], 
             "res": res_obj['res'], 
             "id": res_obj['id'], 
-            "weight": res_obj['weight'], 
+            "weight": res_obj['weight'], # 2 is for tiles, 1 is default, 0 is bg
             "last_rect": rect,
             "deleted": res_obj.get('deleted'),
             "real_screen": res_obj.get('real_screen')
