@@ -8,7 +8,7 @@ from engine.map import Map
 from engine.animation import Animation
 from engine.tiles.loader import load_tiles
 from pygame.locals import *
-from display.renderer import Renderer
+from display.classic_renderer import Renderer
 from time import sleep
 
 class PygameHandler:
@@ -24,7 +24,7 @@ class PygameHandler:
         #
         self.display_width = display_width
         self.display_height = display_height
-        self.real_display = pygame.display.set_mode((display_width,  display_height), RESIZABLE, 16, 0, 1)
+        self.real_display = pygame.display.set_mode((display_width,  display_height), FULLSCREEN, 16, 0, 1)
         self.display = pygame.Surface((self.width, self.height))
         self.display_rect = None
         self.renderer = Renderer(self.display, self.real_display,  self.display_width, self.display_height, self.width, self.height)
@@ -280,7 +280,6 @@ class PygameHandler:
             if self.current_room != room.id:
                 self.renderer.remove_tiles()
                 self.renderer.remove_bullets()
-                pygame.display.update()
 
             if room.id in self.known_rooms.keys():
                 self.current_room = room.id
@@ -465,7 +464,7 @@ class PygameHandler:
     def draw(self):
         if self.background_color is None:
             self.background_color = self.renderer.background_color
-            pygame.draw.rect(self.real_display, self.background_color, (0, 0, self.display_width, self.display_height))
+        pygame.draw.rect(self.real_display, self.background_color, (0, 0, self.display_width, self.display_height))
 
         self.draw_tiles()
         self.draw_player()

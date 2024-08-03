@@ -51,8 +51,6 @@ class Renderer:
         for id in self.rendered.keys():
             if id.startswith('bullet_'):
                 self.rendered[id]['deleted'] = True
-        pygame.display.update()
-        
 
     def remove(self, _id):
         if _id in self.rendered.keys():
@@ -89,7 +87,7 @@ class Renderer:
         return res
 
     def render_cycle(self):
-        self.cleanup_cycle()
+        # self.cleanup_cycle()
         sorted_res = sorted(self.res_to_render, key=lambda x: x['weight'])
         for res in sorted_res:
             if not res['real_screen']:
@@ -100,6 +98,7 @@ class Renderer:
             self.res_to_render.remove(res)
         self.res_to_render = []
         self.updated_rects = []
+        pygame.display.update()
         return
 
     def cleanup_cycle(self):
@@ -195,29 +194,8 @@ class Renderer:
         if not self.fake_display_rect.colliderect(res_rect) and not res_obj.get('real_screen'):
             return
 
-        if known_res and known_res.get('deleted') or res_obj.get('deleted'):
-            raise Exception('Trying to render deleted res')
-
-        for res in self.updated_rects:
-            if res['res'].get_rect().colliderect(pygame.Rect(res_obj['pos'][0], res_obj['pos'][1], \
-                                                             res_obj['res'].get_width(), res_obj['res'].get_height())):
-                if res['weight'] < res_obj['weight']:
-                    res_obj['force_redraw'] = True
-        if known_res:
-            if known_res["x"] != res_obj['pos'][0] or known_res["y"] != res_obj['pos'][1]:
-                self.redraw_background_aftermove(known_res, res_obj) # Not the issue with the player model
-            elif known_res["res"] == res_obj['res'] \
-                and known_res["x"] == res_obj['pos'][0] \
-                    and known_res["y"] == res_obj['pos'][1]:
-                if not res_obj['force_redraw']:
-                    return
-            else:
-                self.redraw_background_res_update(res_obj)
-
-        self.debug_rect(res_obj, (0, 255, 0))
-
         rect = self.real_display.blit(res_obj['res'], (res_obj['pos'][0], res_obj['pos'][1]))
-        pygame.display.update(rect)
+
 
         self.updated_rects.append(res_obj)
 
