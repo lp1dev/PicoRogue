@@ -18,6 +18,9 @@ class Animation:
         self.height = height
         self.finished = False
 
+    def stop(self):
+        self.finished = True
+
     def get_frame(self, frame):
         if self.width and self.height:
             return self.wide_res.subsurface((self.width * frame, 0, self.width, self.height))

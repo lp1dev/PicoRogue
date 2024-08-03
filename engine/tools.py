@@ -14,6 +14,9 @@ def move_towards(obj, destination_x, destination_y):
     obj.y += dy * obj.speed
 
 def convert_pos_screen_game(pygame_handler, pos):
-    ratio_width = pygame_handler.display_width / pygame_handler.width
-    ratio_height = pygame_handler.display_height / pygame_handler.height
-    return (int(pos[0] / ratio_width), int(pos[1] / ratio_height))
+    pass
+    # rect = pygame_handler.display_rect
+    # print('RECT', rect)
+    # ratio_width = pygame_handler.display_width / pygame_handler.width
+    # ratio_height = pygame_handler.display_height / pygame_handler.height
+    # return (int(pos[0] / ratio_width) , int(pos[1] / ratio_height) + int(rect[1]))

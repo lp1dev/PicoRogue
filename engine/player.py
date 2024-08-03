@@ -9,7 +9,7 @@ class Player:
         self.y = 0
         self.bullets_delay = 20
         self.bullets_lifespan = 30
-        self.bullets_speed = 12
+        self.bullets_speed = 7
         self.invulnerability_frames = 60
         self.bullets = []
         self.rect = None
@@ -24,6 +24,6 @@ class Player:
         return
     
     def hit(self, damage):
-        if self.time_since_last_damage > self.invulnerability_frames:
+        if self.time_since_last_damage > self.invulnerability_frames and self.lives > 0:
             self.lives -= damage
             self.time_since_last_damage = 0

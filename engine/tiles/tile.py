@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from random import randrange
 
 class Tile:
     def __init__(self, x, y, damage=0, res=None, collide=False, block_bullets=True):
+        self.id = "tile_%s" %randrange(0, 99999)
         self.x = x
         self.y = y
         self.damage = damage
@@ -20,9 +22,8 @@ class Tile:
     def collide_player(self, player, map):
         pass
 
-    @abstractmethod
     def after_destroyed(self, pygame_handler):
-        pass
+        pygame_handler.renderer.remove(self.id)
 
     def get_center_x(self):
         return self.x + self.res.get_width() / 2
