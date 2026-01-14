@@ -24,7 +24,7 @@ class PygameHandler:
         #
         self.display_width = display_width
         self.display_height = display_height
-        self.real_display = pygame.display.set_mode((display_width,  display_height), FULLSCREEN, 16, 0, 1)
+        self.real_display = pygame.display.set_mode((display_width,  display_height), RESIZABLE, 16, 0, 1)
         self.display = pygame.Surface((self.width, self.height))
         self.display_rect = None
         self.renderer = Renderer(self.display, self.real_display,  self.display_width, self.display_height, self.width, self.height)
